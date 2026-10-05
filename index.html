@@ -4,6 +4,116 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>時響 - Horology Daily Wisdom</title>
+
+  <!-- iOS Safari ホーム画面アイコン & Web App 設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時響">
+  <link rel="apple-touch-icon" sizes="180x180" id="appleTouchIcon">
+  <link rel="icon" type="image/svg+xml" id="faviconLink">
+
+  <script>
+    // Safariの「ホーム画面に追加」で即座に美麗な高解像度アイコンを表示するための動的PNG生成
+    (function generateAppIcons() {
+      try {
+        const size = 180;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // 背景：深遠なグランドセイコー・ミッドナイトブルー
+        const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+        bgGrad.addColorStop(0, '#0b1938');
+        bgGrad.addColorStop(0.5, '#071126');
+        bgGrad.addColorStop(1, '#030814');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, size, size);
+
+        // 中央の繊細なゴールドラジアルグロー
+        const radial = ctx.createRadialGradient(size / 2, size / 2, 5, size / 2, size / 2, 80);
+        radial.addColorStop(0, 'rgba(212, 175, 55, 0.25)');
+        radial.addColorStop(1, 'rgba(11, 25, 56, 0)');
+        ctx.fillStyle = radial;
+        ctx.fillRect(0, 0, size, size);
+
+        // 外周ベゼル（精緻なゴールド二重リング）
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 74, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 66, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 12箇所のインデックス目盛り
+        for (let i = 0; i < 12; i++) {
+          const angle = (i * Math.PI) / 6;
+          const isMain = i % 3 === 0;
+          const r1 = 64;
+          const r2 = isMain ? 52 : 57;
+          ctx.strokeStyle = isMain ? '#f3d999' : 'rgba(212, 175, 55, 0.6)';
+          ctx.lineWidth = isMain ? 3 : 1.5;
+          ctx.beginPath();
+          ctx.moveTo(size / 2 + Math.cos(angle) * r1, size / 2 + Math.sin(angle) * r1);
+          ctx.lineTo(size / 2 + Math.cos(angle) * r2, size / 2 + Math.sin(angle) * r2);
+          ctx.stroke();
+        }
+
+        // 精密な時計の針（時針・分針・秒針）
+        // 時針 (10時方向)
+        ctx.strokeStyle = '#f3d999';
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(size / 2, size / 2);
+        ctx.lineTo(size / 2 - 24, size / 2 - 24);
+        ctx.stroke();
+
+        // 分針 (2時方向)
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(size / 2, size / 2);
+        ctx.lineTo(size / 2 + 34, size / 2 - 28);
+        ctx.stroke();
+
+        // ブルースチール秒針（GSの象徴）
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(size / 2 - 8, size / 2 + 12);
+        ctx.lineTo(size / 2 + 20, size / 2 + 35);
+        ctx.stroke();
+
+        // センターピボット（中心の黄金キャップ）
+        ctx.fillStyle = '#f3d999';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ブランド文字「時響」
+        ctx.fillStyle = '#d4af37';
+        ctx.font = 'bold 15px "Shippori Mincho", serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('時響', size / 2, size / 2 + 32);
+
+        // アイコンをリンク要素へ設定
+        const pngUrl = canvas.toDataURL('image/png');
+        const appleIconEl = document.getElementById('appleTouchIcon');
+        const faviconEl = document.getElementById('faviconLink');
+        if (appleIconEl) appleIconEl.href = pngUrl;
+        if (faviconEl) faviconEl.href = pngUrl;
+      } catch (e) {
+        console.error('Failed to generate icon', e);
+      }
+    })();
+  </script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Shippori Mincho & Plus Jakarta Sans -->
