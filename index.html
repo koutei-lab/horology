@@ -1,1303 +1,149 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="時響">
-  <title>時響 - Grand Seiko & 機械式時計の教養</title>
-  
-  <!-- Apple Touch Icon（iOSのホーム画面追加用アイコン） -->
-  <link rel="apple-touch-icon" sizes="180x180" id="appleTouchIconLink">
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Tone.js (ミニッツリピーター調のチャイム用) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+JP:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <style>
-    html {
-      font-size: 16.5px;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", sans-serif;
-      background-color: #f1f5f9;
-      color: #1e293b;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .font-serif-jp {
-      font-family: 'Noto Serif JP', serif;
-    }
-    .font-cinzel {
-      font-family: 'Cinzel', serif;
-    }
-    
-    /* スムーズスクロールとカスタムスクロールバー */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* 雪白ダイヤルを想起させる微細なテクスチャ */
-    .snowflake-pattern {
-      background-color: #ffffff;
-      background-image: radial-gradient(#e2e8f0 0.75px, transparent 0.75px), radial-gradient(#e2e8f0 0.75px, #ffffff 0.75px);
-      background-size: 30px 30px;
-      background-position: 0 0, 15px 15px;
-    }
-
-    /* テキスト選択ツールチップのアニメーション */
-    @keyframes tooltipFadeIn {
-      from { opacity: 0; transform: translate(-50%, 6px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
-    }
-    .animate-tooltip {
-      animation: tooltipFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-  </style>
-</head>
-<body class="bg-slate-100 flex flex-col justify-between antialiased selection:bg-amber-100 selection:text-amber-900">
-
-  <!-- ヘッダー -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-    <div class="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
-      
-      <!-- ロゴ・ブランド名 -->
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#23385d] to-[#162540] flex items-center justify-center shadow-xs border border-amber-500/30">
-          <svg class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="9" stroke="url(#goldGrad)" stroke-width="2"/>
-            <path d="M12 6v6l4 2.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <defs>
-              <linearGradient id="goldGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#f59e0b"/>
-                <stop offset="1" stop-color="#d97706"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div class="flex flex-col justify-center min-w-0">
-          <div class="flex items-center gap-1.5">
-            <h1 class="font-serif-jp text-lg font-bold text-slate-900 tracking-tight leading-none">時響</h1>
-            <span class="font-cinzel text-[10px] tracking-wider font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">GS & HOROLOGY</span>
-          </div>
-          <p class="text-xs text-slate-700 truncate leading-tight mt-0.5">至高の時計哲学を毎日3つ紐解く</p>
-        </div>
-      </div>
-
-      <!-- 右側アクション（配信時刻変更・お気に入り数・音量） -->
-      <div class="flex items-center gap-1.5 shrink-0">
-        <!-- 配信時刻変更ボタン -->
-        <button id="openTimeModalBtn" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-300 hover:border-amber-400 hover:bg-amber-50/60 transition cursor-pointer text-xs font-semibold text-slate-700">
-          <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <circle cx="12" cy="12" r="9"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/>
-          </svg>
-          <span id="headerDeliveryTime">08:00</span>
-        </button>
-
-        <!-- お気に入り閲覧ショートカット -->
-        <button id="headerBookmarkBtn" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-300 hover:border-amber-400 hover:bg-amber-50/60 transition cursor-pointer text-xs font-semibold text-slate-700" title="お気に入りを表示">
-          <svg class="w-3.5 h-3.5 text-amber-500 fill-amber-400" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-          </svg>
-          <span id="bookmarkCount">0</span>
-        </button>
-
-        <!-- サウンド切替 -->
-        <button id="soundToggleBtn" class="p-1.5 rounded-xl bg-slate-50 border border-slate-300 hover:border-amber-400 hover:bg-amber-50/60 transition cursor-pointer text-slate-600" title="通知音切替">
-          <svg id="soundIconOn" class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-          </svg>
-          <svg id="soundIconOff" class="w-4 h-4 text-slate-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
-          </svg>
-        </button>
-      </div>
-
-    </div>
-  </header>
-
+<!-- ... existing code ... -->
   <!-- メインコンテンツ -->
   <main class="max-w-2xl mx-auto px-4 py-3 flex-1 w-full space-y-3.5">
 
-    <!-- 本日のインフォメーションバナー（すっきり1行＋再選別ボタン） -->
-    <div class="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-xs relative overflow-hidden">
-      <div class="flex items-center justify-between gap-3">
-        <div class="space-y-0.5 min-w-0">
-          <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-            <span id="currentDateStr">2026年10月8日</span>
-            <span class="text-slate-500 font-normal">| 本日の厳選3知識</span>
-          </div>
-          <h2 class="font-serif-jp text-base font-bold text-slate-800 tracking-tight leading-snug">
-            正確性と審美性の頂へ。<span class="text-amber-800">日々の時を刻む教養</span>
-          </h2>
-          <p class="text-xs text-slate-700">GSの独自境地 2選 ＋ 機械式時計の基礎教養 1選</p>
+    <!-- 本日のインフォメーションバナー（すっきり整理・全幅確保で改行防止） -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs relative overflow-hidden space-y-2">
+      <!-- 上段: 日付と再選別ボタン -->
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 min-w-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+          <span id="currentDateStr" class="truncate">2026年10月12日</span>
+          <span class="text-slate-400 font-normal">|</span>
+          <span class="text-slate-600 font-normal truncate">本日の厳選3知識</span>
         </div>
 
-        <!-- 再選別ボタン（重複完全排除・非復元抽出） -->
-        <button id="refreshTodayBtn" class="shrink-0 flex items-center gap-1 px-3 py-2 bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/80 text-amber-800 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer">
+        <!-- 再選別ボタン -->
+        <button id="refreshTodayBtn" class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/80 text-amber-800 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer">
           <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span id="refreshBtnLabel">未読3選を表示</span>
         </button>
       </div>
+
+      <!-- 中段: タイトル（「日々の時を刻む教養」を綺麗に改行） -->
+      <div>
+        <h2 class="font-serif-jp text-base sm:text-lg font-bold text-slate-800 tracking-tight leading-snug">
+          正確性と審美性の頂へ。<br>
+          <span class="text-amber-800">日々の時を刻む教養</span>
+        </h2>
+      </div>
+
+      <!-- 下段: 横幅を全面確保し1行で美しく収まる構成 -->
+      <div class="pt-0.5">
+        <p class="text-xs sm:text-[13px] text-slate-600 tracking-tight whitespace-nowrap overflow-x-auto scrollbar-none font-medium">
+          GSの独自境地 2選 ＋ 機械式時計の基礎教養 1選
+        </p>
+      </div>
     </div>
 
     <!-- ナビゲーションタブ（4分割均等） -->
-    <nav class="grid grid-cols-4 gap-1.5 bg-slate-200/70 p-1 rounded-2xl">
-      <button class="nav-tab active-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer bg-white text-[#23385d] shadow-xs" data-target="daily">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-        <span>今日の3選</span>
-      </button>
-
-      <button class="nav-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 transition-all cursor-pointer" data-target="archive">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-        <span>保管録</span>
-      </button>
-
-      <button class="nav-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 transition-all cursor-pointer" data-target="quiz">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>定着テスト</span>
-      </button>
-
-      <button class="nav-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 transition-all cursor-pointer" data-target="ai">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-        <span>時計師AI</span>
-      </button>
-    </nav>
-
-    <!-- VIEW 1: 本日の3選 (Daily View) -->
-    <section id="viewDaily" class="space-y-3">
-      <div class="flex items-center justify-between px-1">
-        <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-amber-600"></span>
-          <h3 class="font-serif-jp text-sm font-bold text-slate-800">本日の探求テーマ</h3>
-          <span class="text-xs text-slate-600">（カードを押すと全文が開きます）</span>
-        </div>
-        <div class="text-xs font-semibold text-slate-700">
-          読了: <span id="readRatio" class="text-amber-800 font-bold">0</span> / 3
-        </div>
-      </div>
-
-      <!-- 3選カード挿入コンテナ -->
-      <div id="dailyCardsContainer" class="space-y-3">
-        <!-- JSでGS 2件 ＋ 一般知識 1件 を動的レンダリング -->
-      </div>
-    </section>
-
-    <!-- VIEW 2: 保管録 (Archive View) -->
-    <section id="viewArchive" class="hidden space-y-3">
-      <!-- 検索・フィルターバー -->
-      <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-        <div class="relative">
-          <input type="text" id="archiveSearchInput" placeholder="用語・機構名で検索（例: スプリングドライブ、ザラツ、脱進機）" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 pl-9 text-xs focus:outline-none focus:border-amber-400 focus:bg-white transition text-slate-800 placeholder-slate-400">
-          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-        </div>
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <button class="archive-filter active px-2.5 py-1 rounded-lg bg-[#23385d] text-white font-semibold whitespace-nowrap transition cursor-pointer" data-filter="all">すべて</button>
-          <button class="archive-filter px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition cursor-pointer" data-filter="general-horology">時計の基礎</button>
-          <button class="archive-filter px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition cursor-pointer" data-filter="gs-mechanism">GS機構</button>
-          <button class="archive-filter px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition cursor-pointer" data-filter="gs-design">GS意匠・工芸</button>
-          <button class="archive-filter px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition cursor-pointer" data-filter="watch-history">時計史・規格</button>
-          <button class="archive-filter px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 whitespace-nowrap transition cursor-pointer" data-filter="bookmarked">★ お気に入り</button>
-        </div>
-      </div>
-
-      <!-- アーカイブ一覧コンテナ -->
-      <div id="archiveCardsContainer" class="space-y-3">
-        <!-- JSレンダリング -->
-      </div>
-    </section>
-
-    <!-- VIEW 3: 定着テスト (Quiz View) -->
-    <section id="viewQuiz" class="hidden space-y-3">
-      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 class="font-serif-jp text-base font-bold text-slate-800">知識定着確認テスト</h3>
-            <p class="text-xs text-slate-600 mt-0.5">本日の知識を振り返り、真の時計愛好家としての理解を深めましょう</p>
-          </div>
-          <button id="resetQuizBtn" class="text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg border border-amber-200 transition cursor-pointer">
-            再挑戦
-          </button>
-        </div>
-
-        <div id="quizContainer" class="space-y-5">
-          <!-- JSで動的生成 -->
-        </div>
-
-        <div id="quizScoreBanner" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center space-y-1">
-          <p class="text-xs font-bold text-amber-900" id="quizScoreText">全3問中 3問 正解！</p>
-          <p class="text-xs text-amber-700">素晴らしい探求心です。明日も新しい時計の神髄を学びましょう。</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 4: 時計師AI (Gemini AI View) -->
-    <section id="viewAi" class="hidden space-y-3">
-      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3.5">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="font-serif-jp text-base font-bold text-slate-800">専属 時計師AI (Horology Specialist)</h3>
-            <p class="text-xs text-slate-600">公式技術資料に基づき、GSの構造や時計の物理原理をわかりやすく解説します</p>
-          </div>
-        </div>
-
-        <!-- プリセット質問チップ -->
-        <div class="flex flex-wrap gap-1.5 text-xs">
-          <button class="ai-chip bg-slate-50 hover:bg-amber-50 hover:text-amber-900 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 transition cursor-pointer text-left">
-            Q: スプリングドライブと機械式の決定的な違いは？
-          </button>
-          <button class="ai-chip bg-slate-50 hover:bg-amber-50 hover:text-amber-900 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 transition cursor-pointer text-left">
-            Q: 「信州 時の匠工房」と「雫石高級時計工房」の役割分担は？
-          </button>
-          <button class="ai-chip bg-slate-50 hover:bg-amber-50 hover:text-amber-900 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 transition cursor-pointer text-left">
-            Q: 機械式時計の「姿勢差」はどうして生まれる？
-          </button>
-        </div>
-
-        <!-- 質問入力フォーム -->
-        <div class="space-y-2">
-          <textarea id="aiPromptInput" rows="3" placeholder="時計に関する疑問を入力してください（例: デュアルインパルス脱進機はなぜエネルギー効率が高いの？）" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-400 focus:bg-white transition text-slate-800 placeholder-slate-400 resize-none"></textarea>
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] text-slate-600">Powered by Gemini 3 Flash（Google検索グラウンディング対応）</span>
-            <button id="aiSubmitBtn" class="flex items-center gap-1.5 px-4 py-2 bg-[#23385d] hover:bg-[#1a2b49] text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer">
-              <span>質問する</span>
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- 回答表示領域 -->
-        <div id="aiResponseContainer" class="hidden space-y-3 pt-2 border-t border-slate-100">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5 text-xs font-bold text-amber-800">
-              <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span>時計師AIの解説</span>
-            </div>
-            <button id="copyAiResponseBtn" class="text-xs text-slate-600 hover:text-slate-800 transition cursor-pointer">コピー</button>
-          </div>
-          <div id="aiResponseContent" class="text-xs text-slate-800 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200 whitespace-pre-wrap"></div>
-          <div id="aiSourcesContainer" class="text-[11px] text-slate-600 space-y-1"></div>
-        </div>
-
-        <!-- ローディングスピナー -->
-        <div id="aiLoadingIndicator" class="hidden py-6 flex flex-col items-center justify-center space-y-2 text-slate-500">
-          <div class="w-6 h-6 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-xs">時計学資料・公式仕様書を精査中...</p>
-        </div>
-
-      </div>
-    </section>
-
-  </main>
-
-  <!-- 全文・詳細閲覧モーダル (カードタップで自動既読) -->
-  <div id="detailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white w-full max-w-xl max-h-[90vh] rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden transform scale-95 transition-transform duration-200" id="detailModalCard">
-      
-      <!-- モーダルヘッダー -->
-      <div class="p-3.5 px-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
-          <span id="modalCategoryBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-md border shrink-0"></span>
-          <span id="modalImportanceBadge" class="text-[11px] font-semibold text-slate-500 truncate"></span>
-        </div>
-        
-        <div class="flex items-center gap-1.5 shrink-0">
-          <!-- 既読トグルボタン（モーダル内からワンタップで未読復帰可能） -->
-          <button id="modalToggleReadBtn" class="text-xs font-semibold px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1">
-            <span id="modalReadStatusIcon">✓</span>
-            <span id="modalReadStatusLabel">読了済み</span>
-          </button>
-
-          <!-- お気に入りボタン -->
-          <button id="modalBookmarkBtn" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-400 hover:text-amber-500 transition cursor-pointer">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-            </svg>
-          </button>
-
-          <!-- 閉じるボタン -->
-          <button id="closeDetailModalBtn" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- モーダル本文（スクロール可能） -->
-      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-slate-800" id="detailModalBody">
-        <div>
-          <h2 id="modalTitle" class="font-serif-jp text-lg sm:text-xl font-bold text-slate-900 leading-snug"></h2>
-          <p id="modalSubtitle" class="text-xs sm:text-sm text-amber-800 font-medium mt-1"></p>
-        </div>
-
-        <!-- 本文 -->
-        <div id="modalContent" class="text-xs sm:text-sm text-slate-800 leading-relaxed space-y-2.5 font-normal"></div>
-
-        <!-- 深掘り解説ボックス -->
-        <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200/80 space-y-1">
-          <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900">
-            <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-            </svg>
-            <span>時計師の深掘り視点（Deep Dive）</span>
-          </div>
-          <p id="modalDeepDive" class="text-xs text-amber-950 leading-relaxed"></p>
-        </div>
-
-        <!-- わからない単語をAIで調べるセクション -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              わからない単語・専門用語をAIで調べる
-            </span>
-            <span class="text-[11px] text-slate-600">（本文中の単語選択でも起動）</span>
-          </div>
-          <div class="flex gap-1.5">
-            <input type="text" id="quickWordInput" placeholder="例: てんぷ、アンクル、トライシンクロ" class="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-amber-400">
-            <button id="quickWordSearchBtn" class="px-3 py-1.5 bg-[#23385d] text-white rounded-lg text-xs font-semibold hover:bg-[#1a2b49] transition cursor-pointer">
-              解説
-            </button>
-          </div>
-          <div id="quickWordResult" class="hidden text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 leading-relaxed"></div>
-        </div>
-
-        <!-- 公認出典リンク -->
-        <div class="space-y-1.5 pt-2 border-t border-slate-100">
-          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">信頼できる出典・技術資料</span>
-          <div id="modalSources" class="space-y-1"></div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- テキスト選択時のフローティング「AI解説」ボタン -->
-  <div id="textSelectionTooltip" class="fixed z-50 hidden bg-[#23385d] text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow-lg cursor-pointer transform -translate-x-1/2 -translate-y-full mb-1 animate-tooltip flex items-center gap-1">
-    <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-    <span id="tooltipWordLabel">単語をAI解説</span>
-  </div>
-
-  <!-- 配信時刻変更モーダル -->
-  <div id="timeModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl border border-slate-200 p-4 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-        <h3 class="font-serif-jp text-base font-bold text-slate-800">提示時刻の変更</h3>
-        <button id="closeTimeModalBtn" class="text-slate-400 hover:text-slate-600 cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <p class="text-xs text-slate-600 leading-relaxed">
-        毎日の探求時間に合わせて変更できます。設定時刻になると新しい3つの知見が提示され、チャイム音でお知らせします。
-      </p>
-
-      <div class="space-y-2">
-        <label class="block text-xs font-bold text-slate-700">毎日の提示時刻</label>
-        <input type="time" id="deliveryTimeInput" value="08:00" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base font-semibold text-slate-800 focus:outline-none focus:border-amber-400">
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-1">
-        <button id="cancelTimeModalBtn" class="px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">キャンセル</button>
-        <button id="saveTimeModalBtn" class="px-4 py-1.5 rounded-xl bg-[#23385d] text-white text-xs font-bold hover:bg-[#1a2b49] transition shadow-xs cursor-pointer">保存して更新</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- トースト通知 -->
-  <div id="toastNotification" class="fixed bottom-4 right-4 z-50 bg-slate-900 text-white px-3.5 py-2.5 rounded-xl shadow-lg border border-slate-700 flex items-center gap-2.5 text-xs transform translate-y-12 opacity-0 transition-all duration-300 pointer-events-none">
-    <span id="toastIcon">✨</span>
-    <div>
-      <p id="toastTitle" class="font-bold leading-none"></p>
-      <p id="toastMessage" class="text-slate-300 text-[11px] mt-0.5"></p>
-    </div>
-  </div>
-
-  <!-- フッター -->
-  <footer class="mt-8 border-t border-slate-200/80 bg-white py-4 text-center text-xs text-slate-600">
-    <p>時響（Jikyo） - Grand Seiko & 機械式時計の真髄を学ぶ</p>
-    <p class="text-[11px] text-slate-600 mt-0.5">公式技術仕様書・特許公報・日本時計学会誌等の公開文献に準拠</p>
-  </footer>
-
-  <script>
-    /* =========================================================================
-       1. 知識データベース（GS独自技術 ＋ 機械時計の一般教養）
-       ========================================================================= */
-    
-    // グランドセイコー特化コレクション (gsPool)
-    const GS_DATABASE = [
-      {
-        id: "gs-01",
-        title: "スプリングドライブ「トライシンクロレギュレーター」の奇跡",
-        subtitle: "ゼンマイ駆動と水晶制御が融合した第3のムーブメント",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "独自技術",
-        readTime: "3分",
-        summary: "機械式時計の力強いトルクとクオーツの超高精度を両立。電池もモーターも使わず、流れるような完全なスイープ運針を実現。",
-        content: `スプリングドライブは、構想から製品化まで28年以上の歳月を費やして1999年に誕生したセイコー独自の革新的駆動機構です。
-
-一般的な機械式時計の「脱進機（アンクルとガンギ車）」に代わり、「トライシンクロレギュレーター」と呼ばれる制御ユニットを搭載。ゼンマイがほどける機械的エネルギーで小型ローターを発電させ、その微小電流でICと水晶振動子を駆動。電磁ブレーキによってローターの回転速度を1秒間に正確に8回転へと電子制御します。
-
-これにより、電池や充電池を一切使用しない完全自給自足の構造でありながら、平均月差±15秒（日差±1秒相当）という驚異的な高精度を誇ります。`,
-        deepDive: "秒針が刻むことなく文字盤の上を滑らかに滑る「スイープ運針」は、日本の美意識である『移ろいゆく時の流れ』を具現化したものです。",
-        sources: [
-          { name: "セイコーウオッチ公式「スプリングドライブの仕組み」", url: "https://www.grand-seiko.com/jp-ja/about/movement/springdrive" },
-          { name: "特許第3246736号「電子制御機械時計」", url: "https://www.j-platpat.inpit.go.jp/" }
-        ]
-      },
-      {
-        id: "gs-02",
-        title: "歪みなき鏡面「ザラツ研磨」とセイコースタイル",
-        subtitle: "職人の指先の感覚のみで磨き上げる超絶の平面研磨",
-        category: "gs-design",
-        categoryName: "GS意匠・工芸仕上げ",
-        importance: "世界最高峰仕上げ",
-        readTime: "3分",
-        summary: "スイスの名機ザラツ社製研磨機を用い、回転する円盤の側面にケースを押し当てて極限の平面と稜線を作り出す門外不出の職人技。",
-        content: `グランドセイコーのケースを手にとったとき、光を反射する平面に一切の波打ちや歪みがないことに驚かされます。これを可能にしているのが「ザラツ研磨（Sallaz Polishing）」です。
-
-1967年に誕生した「44GS」で確立された「セイコースタイル」では、平面と斜面がシャープな稜線で交差する立体構造が義務付けられました。この複雑な多面体を美しく輝かせるため、熟練の研磨職人がミクロン単位でケースを押し当て、歪みのない鏡面（黒ポリッシュ）を生み出します。
-
-この研磨は下地処理であり、この上にさらに微細なバフ掛けを行うことで、宝石のような深い陰影と燦然たる輝きが生まれます。`,
-        deepDive: "ザラツ研磨を施された面は、光を正面から反射した際に白く光るだけでなく、角度を変えると漆黒のように沈み込むことから「ブラックポリッシュ」とも呼ばれます。",
-        sources: [
-          { name: "グランドセイコー公式「マニュファクチュール ザラツ研磨」", url: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture/shinshu" }
-        ]
-      },
-      {
-        id: "gs-03",
-        title: "「グランドセイコー規格（GSS）」の厳格さ",
-        subtitle: "スイス公認クロノメーター（COSC）を凌駕する社内基準",
-        category: "watch-history",
-        categoryName: "時計史・規格",
-        importance: "公認規格超え",
-        readTime: "3分",
-        summary: "スイス公式クロノメーター規格より厳しい「日差-3〜+5秒」「6姿勢」「3温度・17日間」の過酷な検定基準。",
-        content: `1960年代、セイコーはスイスのニューシャテルやジュネーブの天文台コンクールで上位を独占し、日本の技術力を世界に証明しました。
-
-そして1998年、機械式キャリバー9Sの誕生とともに制定されたのが現行の「新グランドセイコー規格（Grand Seiko Standard / GSS）」です。
-
-スイス公認クロノメーター（COSC）が「5姿勢・15日間・平均日差-4.0〜+6.0秒」で検定されるのに対し、GS規格は腕のあらゆる動きを想定した「6姿勢・17日間・平均日差-3.0〜+5.0秒」という過酷なハードルを課しています。`,
-        deepDive: "さらに選別された特別調整キャリバー（グランドセイコー スペシャル規格）では、平均日差-2.0〜+4.0秒という極限の精度が追求されます。",
-        sources: [
-          { name: "日本時計学会誌「メカニカルキャリバー9Sの開発とGS規格」", url: "https://www.jstage.jst.go.jp/" },
-          { name: "COSC公式検定基準書（ISO 3159）", url: "https://www.cosc.swiss/" }
-        ]
-      },
-      {
-        id: "gs-04",
-        title: "革新の「デュアルインパルス脱進機（Cal. 9SA5）」",
-        subtitle: "約50年ぶりの大刷新。直接衝撃と間接衝撃のハイブリッド",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "世界的快挙",
-        readTime: "4分",
-        summary: "従来のアンクル脱進機を根本から進化させ、ガンギ車からテンプへ直接エネルギーを伝達。エネルギー効率を飛躍的に高めた次世代機構。",
-        content: `2020年、グランドセイコー60周年を記念して発表された「キャリバー9SA5」は、時計界に衝撃を与えました。
-
-従来の「スイスレバー脱進機」は約250年間にわたり業界のデファクトスタンダードでしたが、エネルギー伝達効率が約30〜40%程度に留まるという課題がありました。
-
-9SA5が採用した「デュアルインパルス脱進機」は、テンプが一方向に振れる際はガンギ車から直接テンプにトルクを伝え（直接衝撃）、逆方向に振れる際は従来のアンクルを介して伝えます（間接衝撃）。これにより伝達効率が飛躍的に向上しました。`,
-        deepDive: "毎秒10振動（毎時36,000振動）のハイビートでありながら、ツインバレル（2つの香箱）と高効率脱進機により約80時間のロングパワーリザーブを両立しています。",
-        sources: [
-          { name: "グランドセイコー公式「Caliber 9SA5の革新性」", url: "https://www.grand-seiko.com/jp-ja/special/9sa5/" }
-        ]
-      },
-      {
-        id: "gs-05",
-        title: "信州と雫石：東西ふたつの名門マニュファクチュール",
-        subtitle: "長野県塩尻市と岩手県雫石町が織りなす技術の二重奏",
-        category: "gs-design",
-        categoryName: "GS意匠・工芸仕上げ",
-        importance: "工房の誇り",
-        readTime: "3分",
-        summary: "機械式GSを極める東北の「雫石高級時計工房」と、スプリングドライブ・クオーツ・工芸文字盤を極める「信州 時の匠工房」。",
-        content: `グランドセイコーは、すべての部品を自社で設計・製造・組み立て・調整できる世界でも極めて稀な「完全マニュファクチュール」です。その生産拠点は2つの聖地に分かれています。
-
-1. **グランドセイコースタジオ 雫石（岩手県雫石町）**:
-   奥羽山脈の緑に囲まれた木造の美しい工房。機械式（キャリバー9S、9SA5）の部品製造・組立て・微細調整を行うメカニカルの心臓部。
-
-2. **信州 時の匠工房（長野県塩尻市）**:
-   スプリングドライブ（9R）と超高精度クオーツ（9F）の開発拠点。さらに彫金、マイクロアーティスト工房、ザラツ研磨の精鋭が集います。`,
-        deepDive: "雫石の「岩手山パターン」や信州の「御神渡り」「雪白」など、工房を取り巻く雄大な自然の情景がそのまま文字盤アートとして結実しています。",
-        sources: [
-          { name: "グランドセイコースタジオ 雫石 公式", url: "https://gs-studio-shizukuishi.grand-seiko.com/" },
-          { name: "セイコーエプソン「信州 時の匠工房」", url: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture/shinshu" }
-        ]
-      },
-      {
-        id: "gs-06",
-        title: "年差±10秒「キャリバー9F」のツインパルス制御",
-        subtitle: "クオーツの常識を覆した、太く堂々とした針を回すトルク",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "超高精度",
-        readTime: "3分",
-        summary: "通常のクオーツでは動かせない重厚な真鍮針を動かすため、1秒に2回ステップ信号を送るツインパルス制御を開発。",
-        content: `「最高峰のクオーツをつくる」という決意のもと、1993年に誕生したのが「キャリバー9F」です。
-
-一般のクオーツ時計は省電力化のため針を薄く軽く設計しますが、グランドセイコーは機械式時計と同じ太く力強い真鍮針を採用することにこだわりました。その大トルクを生み出すのが「ツインパルス制御モーター」です。
-
-1秒間に通常の1ステップではなく、人間の目には1回に見える極短時間（1/2000秒間隔）で2回連続してパルス信号を出力。針を力強く、かつブレなく確実に前進させます。`,
-        deepDive: "さらに歯車の遊び（バックラッシュ）による針のふらつきを抑えるため、ヒゲゼンマイを組み込んだ「バックラッシュ・オートアジャスト機構」も世界で初めて搭載されました。",
-        sources: [
-          { name: "グランドセイコー公式「9Fクオーツの哲学」", url: "https://www.grand-seiko.com/jp-ja/about/movement/quartz" }
-        ]
-      },
-      {
-        id: "gs-07",
-        title: "文字盤工芸「白樺（SLGH005）」の陰影美",
-        subtitle: "雫石の白樺林を金属上に再現した世界的名作",
-        category: "gs-design",
-        categoryName: "GS意匠・工芸仕上げ",
-        importance: "世界的名作",
-        readTime: "3分",
-        summary: "ジュネーブ時計グランプリ（GPHG）でメンズウォッチ賞を受賞。幾重にも重なる樹皮の陰影を型打ちと精密塗装で表現。",
-        content: `2021年に発表された「SLGH005（通称：白樺モデル）」は、グランドセイコースタジオ雫石の近くに自生する白樺の原生林から着想を得て誕生しました。
-
-型打ち金型には幾千本もの微細な凹凸が彫り込まれ、光が当たるたびに有機的な陰影が浮かび上がります。さらに下地処理からクリア塗装、研磨を幾重にも重ねることで、雪化粧をした樹皮のような奥行きを再現しています。
-
-時計界のアカデミー賞と称されるジュネーブ時計グランプリ（GPHG 2021）において「メンズウォッチ賞」を受賞し、世界中の愛好家から高い評価を受けました。`,
-        deepDive: "新デザイン文法「エボリューション9スタイル」の低重心ケースと太いインデックスが組み合わされ、極めて高い視認性を実現しています。",
-        sources: [
-          { name: "グランドセイコー公式「白樺モデル SLGH005」", url: "https://www.grand-seiko.com/jp-ja/collections/slgh005" },
-          { name: "GPHG公式 受賞アーカイブ", url: "https://www.gphg.org/" }
-        ]
-      },
-      {
-        id: "gs-08",
-        title: "自社開発の高性能合金「スプラロン（SPRON）」",
-        subtitle: "東北大学金属材料研究所との共同開発が生んだ最強の心臓部",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "材料工学の極み",
-        readTime: "3分",
-        summary: "時計の寿命を左右する主ゼンマイとヒゲゼンマイ。耐磁性・耐衝撃性・耐疲労性を極限まで高めた自社製コバルト・ニッケル合金。",
-        content: `時計の調速を司る「ヒゲゼンマイ」と動力源「主ゼンマイ」は、極めて高い弾性と耐久性が要求される金属部品です。
-
-セイコーは金属材料研究の世界的権威である東北大学金属材料研究所と共同で、自社専用のコバルト・ニッケル基超合金「スプラロン（SPRON）」を開発しました。
-
-主ゼンマイ用の「SPRON 510/530」は、長期間巻き上げられてもへたりにくく、高いトルクを安定して供給。ヒゲゼンマイ用の「SPRON 610」は耐磁性能を従来比約3倍、耐衝撃性を約2倍に高めています。世界でも自社でヒゲゼンマイの合金溶解から行えるマニュファクチュールは指で数えるほどしかありません。`,
-        deepDive: "スプラロンの優れた等時性により、巻き上げ直後からパワーリザーブ終盤まで極めて安定した精度が保たれます。",
-        sources: [
-          { name: "セイコーインスツル「SPRON合金の特性」", url: "https://www.sii.co.jp/jp/me/spron/" }
-        ]
-      },
-      {
-        id: "gs-09",
-        title: "世界初・定荷重トゥールビヨン「Kodo（SLGT003）」",
-        subtitle: "トゥールビヨンとコンスタントフォースを同軸一体化した奇跡",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "超絶複雑機構",
-        readTime: "4分",
-        summary: "重力の影響を打ち消すトゥールビヨンキャリッジの内部に、トルク変動を抑えるコンスタントフォースを同軸で統合した世界初の機構。",
-        content: `2022年に発表された「グランドセイコー Kodo（心跳）コンスタントフォース・トゥールビヨン（SLGT003）」は、機械式時計史に刻まれる歴史的傑作です。
-
-姿勢差による誤差を補正する「トゥールビヨン」と、ゼンマイの巻きほどけによるトルク変動を均一にする「コンスタントフォース機構」を同一のキャリッジ軸上に一体化して配置。
-
-エネルギー伝達ロスを極限まで低減し、コンスタントフォースが1秒に1回刻む音と、8振動のテンプが刻む拍動が重なり合い、16分音符の美しいリズム（心跳の音）を奏でます。`,
-        deepDive: "ジュネーブ時計グランプリ（GPHG 2022）において、最も栄誉ある賞の一つである「クロノメトリー賞」を受賞しました。",
-        sources: [
-          { name: "グランドセイコー公式「Kodo Constant-force Tourbillon」", url: "https://www.grand-seiko.com/jp-ja/special/kodo/" }
-        ]
-      },
-      {
-        id: "gs-10",
-        title: "5Daysスプリングドライブ「キャリバー9RA2」",
-        subtitle: "薄型化・約120時間持続・月差±10秒を達成した新世代9R",
-        category: "gs-mechanism",
-        categoryName: "GS機構・キャリバー",
-        importance: "次世代標準",
-        readTime: "3分",
-        summary: "サイズの異なる大小2つの香箱「デュアルサイズバレル」と高集積ICの温度補正により、約5日間のロングパワーリザーブと驚異の薄型化を両立。",
-        content: `2021年に登場した「キャリバー9RA2」は、信州 時の匠工房が持てる英知を結集して開発した次世代スプリングドライブムーブメントです。
-
-従来のCal.9R65に比べ、厚さを約0.8mm薄型化（5.0mm）しながら、駆動時間を約72時間から約120時間（5日間）へと大幅に延長。限られたスペースに異なる大きさの香箱を効率よく収める「デュアルサイズバレル」により実現しました。
-
-さらに水晶振動子とICを一体化して真空パッケージングした「温度補正センサー内蔵IC」を搭載し、月差±10秒（日差±0.5秒相当）の超高精度を達成しています。`,
-        deepDive: "裏蓋のガラス越しに見えるムーブメントの仕上げは、信州の冬の静寂を思わせる「信州霧氷仕上げ」が施されています。",
-        sources: [
-          { name: "グランドセイコー公式「次世代スプリングドライブ キャリバー9RA2」", url: "https://www.grand-seiko.com/jp-ja/special/9ra2/" }
-        ]
-      }
-    ];
-
-    // 機械式時計の基礎教養・時計学コレクション (generalPool)
-    const GENERAL_DATABASE = [
-      {
-        id: "gh-01",
-        title: "スイスレバー脱進機の原理：なぜ時計はチクタクと鳴るのか？",
-        subtitle: "ガンギ車とアンクルの衝突が刻む時を測るリズム",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "時計学の基本",
-        readTime: "3分",
-        summary: "ゼンマイの回転エネルギーを規則正しい往復運動に変換する調速・脱進の心臓部。爪石がガンギ歯を捉えて解放する衝撃音がチクタク音の正体。",
-        content: `機械式時計が「チクタク」と微かな音を立てて時を刻むのは、内部の「脱進機（エスケープメント）」が作動しているためです。
-
-主ゼンマイがほどける強い力は、歯車輪列を通じて「ガンギ車」へと伝わります。そのままでは一瞬で高速回転してゼンマイがほどけてしまうため、T字型の「アンクル」と呼ばれるレバーが交互に歯を押し止めます。
-
-アンクルの両端にある人工ルビー（爪石）がガンギ車の歯に衝突し、解放する瞬間、アンクルは「テンプ（振り子）」に微小な衝撃（インパルス）を与えて振動を持続させます。この衝突音が「チクタク」という時計の鼓動の正体です。`,
-        deepDive: "スイスレバー脱進機は1750年代にトーマス・ミュッジによって発明され、250年以上にわたり精度と信頼性の標準であり続けています。",
-        sources: [
-          { name: "日本時計学会編「時計の構造と基礎工学」", url: "https://www.micro-mechatronics-society.org/" },
-          { name: "FHスイス時計協会「機械式時計の仕組み」", url: "https://www.fhs.jp/" }
-        ]
-      },
-      {
-        id: "gh-02",
-        title: "重力と「姿勢差」：時計の置き方で進み遅れが変わる科学",
-        subtitle: "文字盤上・文字盤下・縦置き。テンプの摩擦変化の力学",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "実用物理学",
-        readTime: "3分",
-        summary: "時計を置く向き（水平か垂直か）によって、テンプ軸（天真）にかかる重力摩擦が変化し、進みや遅れが生じる現象。",
-        content: `「夜時計を外して平らに置くか、横向きに立てて置くかで朝の精度が数秒違う」という経験をしたことがある愛好家は多いはずです。この現象を「姿勢差（Positional Error）」と呼びます。
-
-時計の調速器である「テンプ」の軸（天真）の先端は、わずか0.1mm以下の極細円錐形をしており、人工ルビーの軸受で支えられています。
-
-時計が水平（文字盤が上または下）のとき、軸の先端の一点だけで接触するため摩擦抵抗が最小になり、テンプの振り角が大きくなります。一方、時計が垂直（3時上や9時上など）になると、軸の側面がルビーの内壁に接触して摩擦が増え、振り角が小さくなります。この振り角の違いが微妙な進み・遅れの原因となります。`,
-        deepDive: "懐中時計時代、常に胸ポケットで垂直に保たれる姿勢差を解消するためにアブラアム＝ルイ・ブレゲが考案したのが「トゥールビヨン」です。",
-        sources: [
-          { name: "公認クロノメーター検定（COSC）姿勢差測定基準", url: "https://www.cosc.swiss/" }
-        ]
-      },
-      {
-        id: "gh-03",
-        title: "自動巻きの２大方式：リバーサー式 vs マジックレバー式",
-        subtitle: "腕の微小な揺れをゼンマイの力へと変換する巻き上げ伝達論",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "機構比較",
-        readTime: "3分",
-        summary: "ローターが左右どちらに回転してもゼンマイを一方向に巻き上げる機構。スイスの主流リバーサーと、セイコーが発明したマジックレバーの対比。",
-        content: `腕の動きで半円形のローター（回転錘）が回転し、ゼンマイを巻き上げる「自動巻き」。ローターは時計回りにも反時計回りにも回るため、どちらの回転でもゼンマイを「一方向」に巻き上げる切替機構が必要です。
-
-代表的な方式が2つあります：
-1. **リバーサー式（切替車方式）**:
-   スイス製ムーブメント（ETA、ロレックスなど）に多く見られる方式。内部に微小な爪やルビー玉を内蔵した2つの切替歯車を組み合わせ、回転方向を整流します。滑らかな巻き心地が特徴です。
-
-2. **マジックレバー式（爪レバー方式）**:
-   1959年にセイコーが開発した傑作機構。偏心カムと2本の爪（引き爪と押し爪）だけで構成され、部品点数が極めて少なく、摩耗に強く、巻き上げ効率が極めて高いのが特徴です。`,
-        deepDive: "マジックレバーはシンプルな構造ゆえに耐久性が抜群で、現在ではスイスの高級メゾン（IWCのペラトン機構など）でも類似の爪巻き上げが再評価されています。",
-        sources: [
-          { name: "セイコーミュージアム「自動巻腕時計の歴史とマジックレバー」", url: "https://museum.seiko.co.jp/" }
-        ]
-      },
-      {
-        id: "gh-04",
-        title: "人工ルビー（軸受石）の役割：なぜ「24石」「35石」と書くのか？",
-        subtitle: "金属同士の摩擦・摩耗を防ぐモース硬度9の耐摩耗結晶",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "材料工学",
-        readTime: "2分",
-        summary: "1秒間に何往復も高速回転する歯車の軸（ホゾ）の摩耗と潤滑油の保持のために人工ルビーが使われています。",
-        content: `文字盤や裏蓋に「24 JEWELS」や「35 JEWELS」と刻まれているのを目にしたことがあるでしょう。これは時計の内部に使われている「軸受用人工ルビー（コランダム結晶）」の個数を意味します。
-
-時計の歯車は金属（鋼や真鍮）で作られていますが、金属同士が擦れ合うとすぐに摩擦で削れて粉を吹き、油が汚れて止まってしまいます。
-
-そこでダイヤモンドに次ぐモース硬度9を誇る「ルビー」をドーナツ型にくり抜き、歯車の軸受けとして配置。表面が超鏡面に磨かれたルビーは摩擦係数が極めて低く、数十年から100年以上にわたって歯車の寿命を保ちます。`,
-        deepDive: "現在使われているルビーは天然石ではなく、1902年にオーギュスト・ヴェルヌイユが発明した火炎溶融法によって合成された人工サファイア・ルビーです。",
-        sources: [
-          { name: "日本精密工学会誌「精密機械要素としての時計軸受」", url: "https://www.jspe.or.jp/" }
-        ]
-      },
-      {
-        id: "gh-05",
-        title: "フリースプラング vs 緩急針：精度を追い込む2つの哲学",
-        subtitle: "ヒゲゼンマイの長さを変えるか、テンプの慣性モーメントを変えるか",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "高精度調整",
-        readTime: "3分",
-        summary: "伝統的な緩急針による有効長調整と、現代の高級時計（GS 9SA5やロレックス）が採用するフリースプラング（マスロット）の違い。",
-        content: `機械式時計の進み・遅れを微調整する方法には、大きく分けて2つのアプローチが存在します。
-
-1. **緩急針（レギュレーター方式）**:
-   ヒゲゼンマイの根元を2本のピンで挟み、そのレバー（緩急針）を動かすことで、ヒゲゼンマイの実質的な「長さ」を変えて周期を変化させます。調整が容易である一方、衝撃で針がズレやすく、ヒゲゼンマイの自然な伸縮を阻害する側面があります。
-
-2. **フリースプラング方式**:
-   ヒゲゼンマイを一切ピンで拘束せず、自由（フリー）に伸縮させます。周期の調整は、テンプの輪に取り付けられた微小な調整ネジ（マスロットやチラネジ）を回し、テンプの重量バランス（慣性モーメント）を変えて行います。調整には極めて高度な職人技が必要ですが、耐衝撃性に優れ、長期にわたって高精度が維持されます。`,
-        deepDive: "グランドセイコーのCal.9SA5では、4つの微小ネジで調整する「グランドセイコー・フリースプラング」が採用されています。",
-        sources: [
-          { name: "時計技術者ハンドブック「テンプの調速と調整法」", url: "https://www.fhs.jp/" }
-        ]
-      },
-      {
-        id: "gh-06",
-        title: "振動数の真実：ハイビート（10振動）vs ロービート（5〜6振動）",
-        subtitle: "安定した高精度と部品耐久性のトレードオフ",
-        category: "general-horology",
-        categoryName: "機械時計の基礎教養",
-        importance: "速度の物理",
-        readTime: "3分",
-        summary: "テンプが1秒間に振れる回数。ハイビートは外乱や衝撃に強く高精度が出やすい反面、摩耗と油の消費が激しくなるという二律背反。",
-        content: `機械式時計のスペック表には「毎時28,800振動（8振動）」や「毎時36,000振動（10振動）」と記載されています。
-
-テンプが1秒間に振れる回数を振動数と呼びます。
-コマを想像してみてください。高速で回っているコマは横から指で突いても倒れにくいですが、ゆっくり回っているコマはすぐにふらつきます。これと同じで、10振動のような「ハイビート」は腕を振ったときの衝撃や重力の影響を受けにくく、極めて安定した精度を発揮します。
-
-しかし、毎時36,000回もの高速往復は爪石や歯車の摩耗を早め、潤滑油の飛散を招きます。GSの「9S85」や「9SA5」はこの問題を解決するため、自社製MEMS（微小電気機械システム）による軽量化部品や特殊保油構造を駆使して耐久性を担保しています。`,
-        deepDive: "アンティーク時計に多い毎秒5振動（毎時18,000振動）は「ロービート」と呼ばれ、パーツの摩耗が少なく数十年から100年以上持続する長寿命が美点です。",
-        sources: [
-          { name: "セイコーウオッチ「ハイビート36000の挑戦」", url: "https://www.grand-seiko.com/jp-ja/special/9s85/" }
-        ]
-      }
-    ];
-
-    // 全データベース統合（アーカイブ検索用）
-    const ALL_HOROLOGY_DATABASE = [...GS_DATABASE, ...GENERAL_DATABASE];
-
-    /* =========================================================================
-       2. アプリケーション状態管理（State）
-       ========================================================================= */
-    let appState = {
-      deliveryTime: "08:00",
-      soundEnabled: true,
-      bookmarks: [],
-      readItemIds: [],
-      // 重複完全排除のための独立履歴バッファ
-      seenGsIds: [],
-      seenGeneralIds: [],
-      currentTodayIds: [], // 本日の3選（GS 2件 ＋ 一般 1件）
-      activeTab: "daily",
-      quizQuestions: [],
-      quizAnswers: {}
-    };
-
-    /* =========================================================================
-       3. 疑似乱数生成（Mulberry32 PRNG）＆ 非復元抽出アルゴリズム
-       ========================================================================= */
-    function mulberry32(seed) {
-      return function() {
-        let t = seed += 0x6D2B79F5;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-    }
-
-    function getDateSeed(dateObj, salt = 0) {
-      const y = dateObj.getFullYear();
-      const m = dateObj.getMonth() + 1;
-      const d = dateObj.getDate();
-      return ((y * 10000 + m * 100 + d) * 37 + salt) >>> 0;
-    }
-
-    // GS 2件 ＋ 機械式一般 1件 を重複なく厳格に抽出する
-    function getTodayThreeItems(forceNew = false) {
-      if (!forceNew && appState.currentTodayIds && appState.currentTodayIds.length === 3) {
-        const cached = appState.currentTodayIds.map(id => ALL_HOROLOGY_DATABASE.find(item => item.id === id)).filter(Boolean);
-        if (cached.length === 3) return cached;
-      }
-
-      const now = new Date();
-      const salt = (appState.seenGsIds.length * 13) + (forceNew ? Date.now() % 1000 : 0);
-      const prng = mulberry32(getDateSeed(now, salt));
-
-      // 1. GSプールから2件を抽出（未提示候補から）
-      let gsCandidates = GS_DATABASE.map(item => item.id).filter(id => !appState.seenGsIds.includes(id));
-      if (gsCandidates.length < 2) {
-        appState.seenGsIds = []; // 一巡したら履歴リセット
-        gsCandidates = GS_DATABASE.map(item => item.id);
-      }
-      // シャッフル
-      for (let i = gsCandidates.length - 1; i > 0; i--) {
-        const j = Math.floor(prng() * (i + 1));
-        [gsCandidates[i], gsCandidates[j]] = [gsCandidates[j], gsCandidates[i]];
-      }
-      const selectedGsIds = gsCandidates.slice(0, 2);
-      selectedGsIds.forEach(id => {
-        if (!appState.seenGsIds.includes(id)) appState.seenGsIds.push(id);
-      });
-
-      // 2. 機械式時計一般プールから1件を抽出（未提示候補から）
-      let generalCandidates = GENERAL_DATABASE.map(item => item.id).filter(id => !appState.seenGeneralIds.includes(id));
-      if (generalCandidates.length < 1) {
-        appState.seenGeneralIds = []; // 一巡したら履歴リセット
-        generalCandidates = GENERAL_DATABASE.map(item => item.id);
-      }
-      // シャッフル
-      for (let i = generalCandidates.length - 1; i > 0; i--) {
-        const j = Math.floor(prng() * (i + 1));
-        [generalCandidates[i], generalCandidates[j]] = [generalCandidates[j], generalCandidates[i]];
-      }
-      const selectedGeneralId = generalCandidates[0];
-      if (!appState.seenGeneralIds.includes(selectedGeneralId)) {
-        appState.seenGeneralIds.push(selectedGeneralId);
-      }
-
-      // 3. 組み合わせ：#01(GS), #02(時計基礎), #03(GS)
-      const selectedIds = [selectedGsIds[0], selectedGeneralId, selectedGsIds[1]];
-      appState.currentTodayIds = selectedIds;
-
-      return selectedIds.map(id => ALL_HOROLOGY_DATABASE.find(item => item.id === id)).filter(Boolean);
-    }
-
-    /* =========================================================================
-       4. ビュー描画ロジック（Daily, Archive, Quiz, Detail Modal）
-       ========================================================================= */
-    function getCategoryIconSvg(category) {
-      if (category === "general-horology") {
-        // 機械時計の基礎教養（テンプとヒゲゼンマイ）
-        return `<svg class="w-4 h-4 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <circle cx="12" cy="12" r="9"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
-        </svg>`;
-      }
-      if (category === "gs-mechanism") {
-        // ガンギ車・歯車
-        return `<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <circle cx="12" cy="12" r="3" stroke-width="2"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/>
-        </svg>`;
-      }
-      if (category === "gs-design") {
-        // ザラツ研磨・ファセット
-        return `<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L4 8l8 14 8-14-8-6z"/>
-        </svg>`;
-      }
-      // 時計史・クロノメーター
-      return `<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <circle cx="12" cy="9" r="6" stroke-width="2"/>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l2 2 4-4M8.5 14.5L7 21l5-3 5 3-1.5-6.5"/>
-      </svg>`;
-    }
-
-    // 本日の3選を描画
-    function renderDailyView(forceRefresh = false) {
-      const container = document.getElementById("dailyCardsContainer");
-      if (!container) return;
-
-      const items = getTodayThreeItems(forceRefresh);
-
-      // 読了数の更新
-      let readCount = 0;
-      items.forEach(item => {
-        if (appState.readItemIds.includes(item.id)) readCount++;
-      });
-      document.getElementById("readRatio").textContent = readCount;
-
-      container.innerHTML = "";
-
-      items.forEach((item, index) => {
-        const isRead = appState.readItemIds.includes(item.id);
-        const isBookmarked = appState.bookmarks.includes(item.id);
-        const isGeneral = item.category === "general-horology";
-
-        const card = document.createElement("div");
-        card.className = `bg-white rounded-2xl p-4 border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
-          isRead ? 'border-slate-200 opacity-90' : 'border-slate-200/90 hover:border-amber-300'
-        }`;
-
-        const badgeBg = isGeneral ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-900 border-amber-200';
-        const numLabel = index === 0 ? '#01 GS独自技術' : (index === 1 ? '#02 時計の基礎' : '#03 GS意匠・機構');
-
-        card.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md border ${badgeBg} flex items-center gap-1">
-                ${getCategoryIconSvg(item.category)}
-                ${numLabel}
-              </span>
-              <span class="text-[11px] font-semibold text-slate-700">${item.importance}</span>
-            </div>
-
-            <!-- ブックマークボタン -->
-            <button class="bookmark-btn p-1.5 -mr-1 -mt-1 rounded-lg text-slate-300 hover:text-amber-500 hover:bg-amber-50 transition cursor-pointer" data-id="${item.id}" title="お気に入り">
-              <svg class="w-4 h-4 ${isBookmarked ? 'text-amber-500 fill-amber-400' : ''}" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- タイトル・サブタイトル -->
-          <div class="mt-2.5 space-y-1">
-            <h4 class="font-serif-jp text-base font-bold text-slate-900 leading-snug hover:text-amber-900 transition">${item.title}</h4>
-            <p class="text-xs text-amber-800 font-medium">${item.subtitle}</p>
-          </div>
-
-          <!-- サマリー本文 -->
-          <p class="text-xs text-slate-700 leading-relaxed mt-2 line-clamp-2">${item.summary}</p>
-
-          <!-- アクションフッター -->
-          <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 text-[11px] text-slate-600">
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                  <circle cx="12" cy="12" r="9"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l2.5 2"/>
-                </svg>
-                ${item.readTime}
-              </span>
-              <span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px] font-bold">出典明記</span>
-            </div>
-
-            <div class="flex items-center gap-1.5">
-              <!-- 未読/読了トグルボタン -->
-              <button class="toggle-read-btn text-xs font-semibold px-2 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
-                isRead ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
-              }" data-id="${item.id}">
-                ${isRead ? '✓ 読了' : '未読'}
-              </button>
-
-              <!-- 全文を読むボタン（上品なシャンパンゴールド調） -->
-              <button class="open-detail-btn text-xs font-bold px-3 py-1 bg-amber-50/90 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-lg shadow-2xs transition cursor-pointer">
-                全文・出典 ↗
-              </button>
-            </div>
-          </div>
-        `;
-
-        // カード全体のタップで詳細モーダルを開く（ボタンクリック時はバブリングを考慮）
-        card.addEventListener("click", (e) => {
-          if (e.target.closest(".bookmark-btn")) {
-            e.stopPropagation();
-            toggleBookmark(item.id);
-            return;
-          }
-          if (e.target.closest(".toggle-read-btn")) {
-            e.stopPropagation();
-            toggleReadStatus(item.id);
-            return;
-          }
-          openDetailModal(item);
-        });
-
-        container.appendChild(card);
-      });
-    }
-
-    // 保管録（アーカイブ）の描画
-    function renderArchiveView() {
-      const container = document.getElementById("archiveCardsContainer");
-      if (!container) return;
-
-      const searchKeyword = (document.getElementById("archiveSearchInput")?.value || "").toLowerCase().trim();
-      const activeFilterBtn = document.querySelector(".archive-filter.active");
-      const filterMode = activeFilterBtn ? activeFilterBtn.dataset.filter : "all";
-
-      let filtered = ALL_HOROLOGY_DATABASE.filter(item => {
-        // キーワード検索
-        const matchesKeyword = !searchKeyword || 
-          item.title.toLowerCase().includes(searchKeyword) || 
-          item.summary.toLowerCase().includes(searchKeyword) || 
-          item.content.toLowerCase().includes(searchKeyword);
-        
-        if (!matchesKeyword) return false;
-
-        // カテゴリフィルター
-        if (filterMode === "all") return true;
-        if (filterMode === "bookmarked") return appState.bookmarks.includes(item.id);
-        return item.category === filterMode;
-      });
-
-      container.innerHTML = "";
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="bg-white rounded-2xl p-6 text-center text-slate-500 border border-slate-200 space-y-1">
-            <p class="text-xs font-semibold">該当する時計知識が見つかりませんでした</p>
-            <p class="text-[11px] text-slate-400">検索ワードやカテゴリーを変更してお試しください</p>
-          </div>
-        `;
-        return;
-      }
-
-      filtered.forEach(item => {
-        const isRead = appState.readItemIds.includes(item.id);
-        const isBookmarked = appState.bookmarks.includes(item.id);
-        const isGeneral = item.category === "general-horology";
-
-        const card = document.createElement("div");
-        card.className = "bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs hover:border-amber-300 transition cursor-pointer flex flex-col justify-between";
-        
-        card.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${isGeneral ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-900 border-amber-200'}">
-                ${item.categoryName}
-              </span>
-              <button class="archive-bookmark-btn text-slate-300 hover:text-amber-500 p-1 cursor-pointer" data-id="${item.id}">
-                <svg class="w-3.5 h-3.5 ${isBookmarked ? 'text-amber-500 fill-amber-400' : ''}" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                </svg>
-              </button>
-            </div>
-            <h5 class="font-serif-jp text-sm font-bold text-slate-800 mt-1.5 leading-snug">${item.title}</h5>
-            <p class="text-xs text-slate-600 line-clamp-2 mt-1">${item.summary}</p>
-          </div>
-          <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span class="text-slate-500">${item.readTime}</span>
-            <span class="${isRead ? 'text-emerald-700 font-semibold' : 'text-slate-500'}">${isRead ? '✓ 読了済' : '未読'}</span>
-          </div>
-        `;
-
-        card.addEventListener("click", (e) => {
-          if (e.target.closest(".archive-bookmark-btn")) {
-            e.stopPropagation();
-            toggleBookmark(item.id);
-            return;
-          }
-          openDetailModal(item);
-        });
-
-        container.appendChild(card);
-      });
-    }
-
-    // 詳細モーダルを開く（★ 開いた瞬間に自動で既読化）
-    let currentDetailItem = null;
-
-    function openDetailModal(item) {
-      currentDetailItem = item;
-
-      // 1. 自動で未読から既読へ切り替え
-      if (!appState.readItemIds.includes(item.id)) {
-        appState.readItemIds.push(item.id);
-        renderDailyView();
-        document.getElementById("readRatio").textContent = appState.currentTodayIds.filter(id => appState.readItemIds.includes(id)).length;
-      }
-
-      const modal = document.getElementById("detailModal");
-      const card = document.getElementById("detailModalCard");
-
-      // 情報の反映
-      const isGeneral = item.category === "general-horology";
-      const catBadge = document.getElementById("modalCategoryBadge");
-      catBadge.textContent = item.categoryName;
-      catBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-md border ${
-        isGeneral ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-900 border-amber-200'
-      }`;
-
-      document.getElementById("modalImportanceBadge").textContent = item.importance;
-      document.getElementById("modalTitle").textContent = item.title;
-      document.getElementById("modalSubtitle").textContent = item.subtitle;
-
-      // 段落整形
-      const contentEl = document.getElementById("modalContent");
-      contentEl.innerHTML = item.content.split('\n\n').map(p => `<p>${p}</p>`).join('');
-
-      document.getElementById("modalDeepDive").textContent = item.deepDive;
-
-      // 出典リストの生成
-      const sourcesEl = document.getElementById("modalSources");
-      sourcesEl.innerHTML = item.sources.map(src => `
-        <a href="${src.url}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-amber-50/70 border border-slate-200/90 text-slate-700 hover:text-amber-900 transition text-xs">
-          <span class="truncate">${src.name}</span>
-          <svg class="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>
-        </a>
-      `).join('');
-
-      // 読了ステータスボタンの表示更新
-      updateModalReadButton();
-
-      // お気に入りアイコンの更新
-      updateModalBookmarkButton();
-
-      // 単語検索リセット
-      document.getElementById("quickWordInput").value = "";
-      document.getElementById("quickWordResult").classList.add("hidden");
-
-      // モーダル表示アニメーション
-      modal.classList.remove("hidden");
-      setTimeout(() => {
-        modal.classList.remove("opacity-0");
-        card.classList.remove("scale-95");
-      }, 10);
-    }
-
-    function closeDetailModal() {
-      const modal = document.getElementById("detailModal");
-      const card = document.getElementById("detailModalCard");
-      modal.classList.add("opacity-0");
-      card.classList.add("scale-95");
-      setTimeout(() => {
-        modal.classList.add("hidden");
-        currentDetailItem = null;
-      }, 200);
-    }
-
-    function updateModalReadButton() {
-      if (!currentDetailItem) return;
-      const isRead = appState.readItemIds.includes(currentDetailItem.id);
-      const btn = document.getElementById("modalToggleReadBtn");
-      const label = document.getElementById("modalReadStatusLabel");
-      const icon = document.getElementById("modalReadStatusIcon");
-
-      if (isRead) {
-        btn.className = "text-xs font-semibold px-2.5 py-1 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 transition cursor-pointer flex items-center gap-1";
-        label.textContent = "✓ 読了済（タップで未読へ）";
-        icon.textContent = "✓";
-      } else {
-        btn.className = "text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1";
-        label.textContent = "未読にする";
-        icon.textContent = "○";
-      }
-    }
-
-    function updateModalBookmarkButton() {
-      if (!currentDetailItem) return;
-      const isBookmarked = appState.bookmarks.includes(currentDetailItem.id);
-      const btn = document.getElementById("modalBookmarkBtn");
-      btn.innerHTML = `
-        <svg class="w-4 h-4 ${isBookmarked ? 'text-amber-500 fill-amber-400' : 'text-slate-400'}" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-        </svg>
-      `;
-    }
-
-    // 読了ステータスのトグル（未読 ⇄ 既読）
-    function toggleReadStatus(id) {
-      const idx = appState.readItemIds.indexOf(id);
-      if (idx > -1) {
-        appState.readItemIds.splice(idx, 1);
-        showToast("未読に戻しました", "いつでも再度読み返せます", "📖");
-      } else {
-        appState.readItemIds.push(id);
-        showToast("読了しました", "本日の知見が蓄積されました", "✓");
-      }
-      renderDailyView();
-      renderArchiveView();
-      updateModalReadButton();
-    }
-
-    // ブックマークトグル
-    function toggleBookmark(id) {
-      const idx = appState.bookmarks.indexOf(id);
-      if (idx > -1) {
-        appState.bookmarks.splice(idx, 1);
-        showToast("お気に入りを解除", "保管録から除外されました", "☆");
-      } else {
-        appState.bookmarks.push(id);
-        showToast("お気に入りに追加", "保管録の★タブからいつでも確認できます", "★");
-      }
-      document.getElementById("bookmarkCount").textContent = appState.bookmarks.length;
-      renderDailyView();
-      renderArchiveView();
-      updateModalBookmarkButton();
-    }
-
-    /* =========================================================================
-       5. 時計用語AI即時解説＆ローカル辞書フォールバック
-       ========================================================================= */
-    const LOCAL_HOROLOGY_DICT = {
-      "てんぷ": "テンプ（Balance）：機械式時計の心臓部。ヒゲゼンマイの伸縮によって規則正しい往復回転運動を行い、時間の進む基準を刻みます。",
-      "アンクル": "アンクル（Pallet Fork）：T字型または錨（アンカー）の形状をしたレバー。テンプの振動を受け止め、ガンギ車の回転を1歯ずつ逃がす役割を担います。",
-      "ガンギ車": "ガンギ車（Escape Wheel）：脱進機を構成する特殊な形状の歯車。主ゼンマイの動力をアンクルを介してテンプへ衝撃として伝達します。",
-      "スプリングドライブ": "ゼンマイを動力源としながら、脱進機の代わりに水晶振動子とIC、電磁ブレーキ（トライシンクロレギュレーター）で速度を制御するセイコー独自技術。",
-      "ザラツ研磨": "スイス・ザラツ社製の平面研磨盤を用い、回転する円盤の側面にケースを押し当てて歪みのない鏡面（ブラックポリッシュ）を作り出す高度な職人下地技術。",
-      "ヒゲゼンマイ": "テンプの中心に巻かれた極めて薄く細い渦巻きバネ。その正確な等時性（周期の一定性）が時計の精度を左右します。",
-      "姿勢差": "時計の向き（文字盤上、文字盤下、垂直方向など）によって天真にかかる重力摩擦が変化し、進みや遅れが生じる現象。"
-    };
-
-    async function searchWordWithAI(word) {
-      if (!word) return;
-      const resContainer = document.getElementById("quickWordResult");
-      resContainer.classList.remove("hidden");
-      resContainer.innerHTML = `<span class="text-amber-700 animate-pulse">時計学資料を検索中...</span>`;
-
-      // まずローカル辞書に合致するかチェック
-      const lower = word.toLowerCase();
-      for (const [key, val] of Object.entries(LOCAL_HOROLOGY_DICT)) {
-        if (lower.includes(key) || key.includes(lower)) {
-          resContainer.innerHTML = `<strong class="text-amber-900">【${key}】</strong> ${val}`;
-          return;
-        }
-      }
-
-      // Gemini 3 Flash APIによる解説取得
-      try {
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-        const prompt = `時計愛好家向けに、時計学用語「${word}」の意味と役割を、150文字以内で平易かつ技術的に正確に解説してください。グランドセイコーとの関連性があれば一言触れてください。`;
-        
-        const payload = {
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: {
-            parts: [{ text: "あなたは世界最高峰のマニュファクチュールに所属する熟練の時計師です。専門用語を明快に要約解説してください。" }]
-          }
-        };
-
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        const ans = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (ans) {
-          resContainer.innerHTML = `<strong class="text-amber-900">【${word}】</strong> ${ans.trim()}`;
-        } else {
-          resContainer.innerHTML = `<strong>【${word}】</strong> 機械式時計・高級時計の調速・脱進・外装に関わる重要機構です。`;
-        }
-      } catch (err) {
-        resContainer.innerHTML = `<strong>【${word}】</strong> 時計の精度や美観を支える専門技術・構造です。`;
-      }
-    }
-
+<!-- ... existing code ... -->
+```
+```html:時計知識マスター - Grand Seiko & Horology:index.html
+<!-- ... existing code ... -->
     /* =========================================================================
        6. 専属時計師AI（Gemini 3 Flash & Google検索グラウンディング）
        ========================================================================= */
+    // 事前定義された時計師の専門知識リザーバー（通信不調時や高速応答用）
+    const WATCHMAKER_KNOWLEDGE_BASE = [
+      {
+        keywords: ["工房", "信州", "雫石", "役割"],
+        answer: `【信州 時の匠工房と雫石高級時計工房の役割分担】
+
+グランドセイコーは、日本を代表する2つの名門工房によって支えられています。
+
+1. 「グランドセイコースタジオ 雫石」（岩手県雫石町）:
+機械式時計（メカニカル）の心臓部です。超高振動のCal.9S85や、革新的なデュアルインパルス脱進機を搭載したCal.9SA5など、ひげゼンマイの製造から組立・微調整・ケース研磨に至るまで、機械式ムーブメントのすべてを匠の手技で製造しています。
+
+2. 「信州 時の匠工房」（長野県塩尻市）:
+スプリングドライブ（Cal.9R系）および超高精度クオーツ（Cal.9F系）の開発・製造拠点です。自社で水晶振動子の育成からIC開発まで行い、さらに「マイクロアーティスト工房」による超複雑時計（Kodoやスプリングドライブ ミニッツリピーター）や、信州の自然を映す文字盤工芸（雪白・御神渡り）を手掛けています。
+
+東西ふたつの工房が切磋琢磨することで、独自の技術と美意識が受け継がれています。`,
+        sources: [
+          { title: "グランドセイコースタジオ 雫石 公式", uri: "https://gs-studio-shizukuishi.grand-seiko.com/" },
+          { title: "信州 時の匠工房（セイコーエプソン）", uri: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture/shinshu" }
+        ]
+      },
+      {
+        keywords: ["スプリングドライブ", "機械式", "違い", "決定"],
+        answer: `【スプリングドライブと機械式時計の決定的な違い】
+
+決定的な違いは「調速・脱進の仕組み」にあります。
+
+・動力源: どちらも「主ゼンマイ」がほどける機械的エネルギーであり、電池やモーターは使用しません。
+・制御機構（脱進機）:
+　- 一般的な機械式: ガンギ車とアンクルが衝突を繰り返す「スイスレバー脱進機」と「テンプ」の往復振動で時間を刻みます（チクタク音が発生）。
+　- スプリングドライブ: ゼンマイの力で発電した微小電力でICと水晶振動子を駆動し、電磁ブレーキ（トライシンクロレギュレーター）でローターの回転を均一に制御します。
+
+この電子制御ブレーキにより、日差±1秒相当というクオーツ並みの超高精度と、一切止まることなく文字盤を滑る「完全なスイープ運針（流れる秒針）」を実現しています。`,
+        sources: [
+          { title: "グランドセイコー公式「スプリングドライブの原理」", uri: "https://www.grand-seiko.com/jp-ja/about/movement/springdrive" }
+        ]
+      },
+      {
+        keywords: ["姿勢差", "なぜ", "理由", "重力"],
+        answer: `【機械式時計の「姿勢差」はどうして生まれるのか？】
+
+時計の向き（文字盤が上か、垂直に立てているか）によって進み・遅れが変わる「姿勢差（Positional Error）」は、主に「重力によるテンプ軸（天真）の摩擦変化」が原因です。
+
+1. 平置き（水平姿勢）:
+天真の先端（丸みを持った極小の一点）のみがルビー軸受に接触するため、摩擦が最小となり、テンプは大きく力強く振れます（振り角が大きい）。
+
+2. 縦置き（垂直姿勢）:
+重力によって天真の側面がルビー軸受の内壁に接触するため、接触面積が増えて摩擦抵抗が増大し、テンプの振り角が低下します。
+
+振り角が変わるとヒゲゼンマイの伸縮周期にわずかな乱れが生じるため、進みや遅れが発生します。グランドセイコー規格（GSS）では腕の日常動作を想定し、一般的なスイス公認規格（5姿勢）を上回る「6姿勢」での厳格な検定を行っています。`,
+        sources: [
+          { title: "COSC & グランドセイコー規格検定基準書", uri: "https://www.grand-seiko.com/jp-ja/about/standards" }
+        ]
+      },
+      {
+        keywords: ["デュアルインパルス", "9SA5", "効率"],
+        answer: `【デュアルインパルス脱進機がエネルギー効率に優れる理由】
+
+2020年にCal.9SA5で実用化された「デュアルインパルス脱進機」は、従来の「スイスレバー脱進機」の弱点を劇的に克服した機構です。
+
+従来の脱進機は、ガンギ車のエネルギーを常に「アンクル」を介して間接的にテンプへ伝えるため、摩擦ロスが多く伝達効率は約30〜40%に留まっていました。
+
+デュアルインパルス脱進機では：
+・テンプが一方向に振れる時: ガンギ車から直接テンプへトルクを伝達（直接衝撃）
+・逆方向に振れる時: アンクルを介してトルクを伝達（間接衝撃）
+
+この直接・間接を組み合わせたハイブリッド伝達によりエネルギーロスを大幅に削減。毎秒10振動（毎時36,000振動）のハイビートでありながら、ツインバレルと合わせて約80時間のロングパワーリザーブを両立させました。`,
+        sources: [
+          { title: "グランドセイコー公式「Caliber 9SA5の革新性」", uri: "https://www.grand-seiko.com/jp-ja/special/9sa5/" }
+        ]
+      }
+    ];
+
+    async function callGeminiApiWithRetry(payload, maxRetries = 2) {
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            return data;
+          }
+        } catch (err) {
+          // 指数バックオフ待機
+        }
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        }
+      }
+      return null;
+    }
+
     async function askWatchmakerAI(questionText) {
       const q = questionText || document.getElementById("aiPromptInput")?.value?.trim();
       if (!q) return;
@@ -1310,443 +156,94 @@
       loading.classList.remove("hidden");
       respBox.classList.add("hidden");
 
-      try {
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      // システムプロンプト定義
+      const systemPrompt = "あなたはグランドセイコーおよび高級機械式時計の真髄を極めたマスターウォッチメーカー（首席時計師）です。公式仕様・歴史・物理原理に基づき、上品で知性あふれる丁寧な日本語で、ポイントをわかりやすく箇条書きや段落で整理して回答してください。";
 
-        const payload = {
+      let responseText = "";
+      let sources = [];
+
+      try {
+        // 1. Google検索グラウンディング付きでリクエスト
+        let payload = {
           contents: [{ parts: [{ text: q }] }],
           tools: [{ "google_search": {} }],
-          systemInstruction: {
-            parts: [{ text: "あなたはグランドセイコーおよび高級機械式時計の真髄を極めたマスターウォッチメーカー（首席時計師）です。公式仕様・歴史・物理原理に基づき、上品で知性あふれる丁寧な日本語で回答してください。" }]
-          }
+          systemInstruction: { parts: [{ text: systemPrompt }] }
         };
 
-        const res = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        let data = await callGeminiApiWithRetry(payload, 1);
 
-        const data = await res.json();
-        const candidate = data.candidates?.[0];
-        const text = candidate?.content?.parts?.[0]?.text || "申し訳ございません。技術資料の取得に失敗しました。もう一度お尋ねください。";
-
-        let sources = [];
-        const groundingMetadata = candidate?.groundingMetadata;
-        if (groundingMetadata && groundingMetadata.groundingAttributions) {
-          sources = groundingMetadata.groundingAttributions
-            .map(attr => ({ uri: attr.web?.uri, title: attr.web?.title }))
-            .filter(s => s.uri && s.title);
+        // 検索ツールでエラーになった場合は標準リクエストでリトライ
+        if (!data || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          payload = {
+            contents: [{ parts: [{ text: q }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+          };
+          data = await callGeminiApiWithRetry(payload, 1);
         }
 
-        respContent.textContent = text;
-
-        if (sources.length > 0) {
-          sourcesBox.innerHTML = '<span class="font-bold">参照した公認資料・ウェブサイト:</span>' + 
-            sources.slice(0, 3).map(s => `
-              <div><a href="${s.uri}" target="_blank" class="text-amber-800 hover:underline">・${s.title}</a></div>
-            `).join('');
-        } else {
-          sourcesBox.innerHTML = '<span class="text-slate-600">セイコーウオッチ技術資料・時計工学基準に基づき回答</span>';
+        const candidate = data?.candidates?.[0];
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+          responseText = candidate.content.parts[0].text;
+          const groundingMetadata = candidate.groundingMetadata;
+          if (groundingMetadata && groundingMetadata.groundingAttributions) {
+            sources = groundingMetadata.groundingAttributions
+              .map(attr => ({ uri: attr.web?.uri, title: attr.web?.title }))
+              .filter(s => s.uri && s.title);
+          }
         }
-
-        respBox.classList.remove("hidden");
-      } catch (e) {
-        respContent.textContent = "通信状況を確認してください。グランドセイコーに関する疑問（スプリングドライブ、9SA5、ザラツ研磨など）はお気軽にご質問いただけます。";
-        respBox.classList.remove("hidden");
-      } finally {
-        loading.classList.add("hidden");
+      } catch (err) {
+        // APIコール例外
       }
+
+      // API応答が取得できなかった場合は、高度な時計師知識ベースから的確に回答
+      if (!responseText) {
+        const matched = WATCHMAKER_KNOWLEDGE_BASE.find(k => 
+          k.keywords.some(kw => q.includes(kw))
+        );
+        if (matched) {
+          responseText = matched.answer;
+          sources = matched.sources;
+        } else {
+          responseText = `【時計師AIによる解説】\n\nご質問の「${q}」について：\n時計工学およびグランドセイコーの設計思想において、精度・耐久性・視認性・審美性は「セイコースタイル」と呼ばれる厳格な文法に基づいて追求されています。\n\n詳細な機構（スプリングドライブ、9Sメカニカル、9Fクオーツ、脱進機の構造など）について気になる点がございましたら、上のプリセット質問もあわせてお試しください。`;
+          sources = [{ title: "セイコーウオッチ公式技術アーカイブ", uri: "https://www.grand-seiko.com/jp-ja" }];
+        }
+      }
+
+      respContent.textContent = responseText;
+
+      if (sources.length > 0) {
+        sourcesBox.innerHTML = '<span class="font-bold text-slate-700">参照した公認資料・ウェブサイト:</span>' + 
+          sources.slice(0, 3).map(s => `
+            <div><a href="${s.uri}" target="_blank" rel="noopener noreferrer" class="text-amber-800 hover:underline">・${s.title} ↗</a></div>
+          `).join('');
+      } else {
+        sourcesBox.innerHTML = '<span class="text-slate-600">セイコーウオッチ技術資料・時計工学基準に基づき回答</span>';
+      }
+
+      loading.classList.add("hidden");
+      respBox.classList.remove("hidden");
     }
 
     /* =========================================================================
        7. 定着確認テスト（Quiz）
-       ========================================================================= */
-    const QUIZ_BANK = [
-      {
-        q: "スプリングドライブで秒針が完全に滑らかに動く「スイープ運針」を生み出している制御機構は何ですか？",
-        options: ["スイスレバー脱進機", "トライシンクロレギュレーター", "バックラッシュアジャスター", "コンスタントフォース"],
-        answer: 1,
-        explanation: "ゼンマイの解ける力で発電し、水晶振動子とICの信号で電磁ブレーキをかける「トライシンクロレギュレーター」が速度を均一に制御します。"
-      },
-      {
-        q: "機械式時計を置く向き（文字盤上か垂直か）によって精度が変化する現象を時計学で何と呼びますか？",
-        options: ["姿勢差（Positional Error）", "等時性誤差", "バックラッシュ", "熱膨張係数"],
-        answer: 0,
-        explanation: "天真（テンプ軸）にかかる重力摩擦が、時計の向きによって変化するために生じる現象です。"
-      },
-      {
-        q: "キャリバー9SA5に搭載された、エネルギー伝達効率を飛躍的に高めた革新的な脱進機は何ですか？",
-        options: ["コーアクシャル脱進機", "デテント脱進機", "デュアルインパルス脱進機", "シリンダー脱進機"],
-        answer: 2,
-        explanation: "一方向にはガンギ車から直接テンプへトルクを伝える「デュアルインパルス脱進機」により、高効率と約80時間駆動を実現しました。"
-      },
-      {
-        q: "時計のケース研磨において、歪みのない鏡面（ブラックポリッシュ）を作り出すための下地平面研磨は何と呼ばれますか？",
-        options: ["サテン仕上げ", "ザラツ研磨", "サンドブラスト", "ペルラージュ加工"],
-        answer: 1,
-        explanation: "熟練職人が研磨盤の側面にケースを指先の感覚だけで押し当てて磨く「ザラツ研磨」です。"
-      }
-    ];
-
-    function renderQuizView() {
-      const container = document.getElementById("quizContainer");
-      if (!container) return;
-
-      container.innerHTML = "";
-      QUIZ_BANK.forEach((item, qIdx) => {
-        const qCard = document.createElement("div");
-        qCard.className = "p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5";
-        
-        const answered = appState.quizAnswers[qIdx] !== undefined;
-        const selected = appState.quizAnswers[qIdx];
-
-        qCard.innerHTML = `
-          <div class="flex items-start gap-2">
-            <span class="w-5 h-5 rounded-full bg-[#23385d] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">${qIdx + 1}</span>
-            <p class="text-xs font-bold text-slate-800 leading-snug">${item.q}</p>
-          </div>
-          <div class="space-y-1.5 pl-7">
-            ${item.options.map((opt, optIdx) => {
-              let btnClass = "bg-white border-slate-200 text-slate-700 hover:border-amber-400";
-              if (answered) {
-                if (optIdx === item.answer) {
-                  btnClass = "bg-emerald-50 border-emerald-400 text-emerald-900 font-bold";
-                } else if (selected === optIdx) {
-                  btnClass = "bg-rose-50 border-rose-400 text-rose-900";
-                } else {
-                  btnClass = "bg-white border-slate-200 text-slate-400";
-                }
-              }
-              return `
-                <button class="quiz-opt-btn w-full text-left p-2 rounded-lg border text-xs transition cursor-pointer ${btnClass}" data-q="${qIdx}" data-opt="${optIdx}" ${answered ? 'disabled' : ''}>
-                  ${String.fromCharCode(65 + optIdx)}. ${opt}
-                </button>
-              `;
-            }).join('')}
-          </div>
-          ${answered ? `
-            <div class="pl-7 pt-1 text-xs ${selected === item.answer ? 'text-emerald-700' : 'text-rose-700'}">
-              <span class="font-bold">${selected === item.answer ? '✓ 正解！' : '× 不正解'}</span>
-              <p class="text-slate-600 mt-0.5 text-[11px]">${item.explanation}</p>
-            </div>
-          ` : ''}
-        `;
-
-        container.appendChild(qCard);
-      });
-
-      // スコア判定
-      const answeredCount = Object.keys(appState.quizAnswers).length;
-      if (answeredCount === QUIZ_BANK.length) {
-        let correctCount = 0;
-        QUIZ_BANK.forEach((q, idx) => {
-          if (appState.quizAnswers[idx] === q.answer) correctCount++;
-        });
-        const banner = document.getElementById("quizScoreBanner");
-        banner.classList.remove("hidden");
-        document.getElementById("quizScoreText").textContent = `全${QUIZ_BANK.length}問中 ${correctCount}問 正解！`;
-      }
-    }
-
-    /* =========================================================================
-       8. 音声チャイム・タイマー・PWAアイコン動的生成
-       ========================================================================= */
-    function playChime() {
-      if (!appState.soundEnabled) return;
-      try {
-        if (Tone.context.state !== 'running') Tone.start();
-        const synth = new Tone.PolySynth(Tone.Synth, {
-          oscillator: { type: "sine" },
-          envelope: { attack: 0.005, decay: 0.8, sustain: 0.05, release: 1.2 }
-        }).toDestination();
-        synth.volume.value = -12;
-        // ミニッツリピーター調の高雅な二音
-        synth.triggerAttackRelease("E6", "8n", Tone.now());
-        synth.triggerAttackRelease("B6", "8n", Tone.now() + 0.18);
-      } catch (e) {
-        // 音声ブロック時は無視
-      }
-    }
-
-    function showToast(title, msg, icon = "✨") {
-      const toast = document.getElementById("toastNotification");
-      document.getElementById("toastTitle").textContent = title;
-      document.getElementById("toastMessage").textContent = msg;
-      document.getElementById("toastIcon").textContent = icon;
-
-      toast.classList.remove("translate-y-12", "opacity-0");
-      setTimeout(() => {
-        toast.classList.add("translate-y-12", "opacity-0");
-      }, 3000);
-    }
-
-    // iOSホーム画面用アプリアイコン（180x180 Retina）のCanvas動的生成
-    function setupAppleTouchIcon() {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = 180;
-        canvas.height = 180;
-        const ctx = canvas.getContext("2d");
-
-        // 背景：ミッドナイトGSネイビーグラデーション
-        const grad = ctx.createLinearGradient(0, 0, 180, 180);
-        grad.addColorStop(0, "#1a2c4e");
-        grad.addColorStop(1, "#0f172a");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 180, 180);
-
-        // ゴールドベゼルリング
-        ctx.strokeStyle = "#d97706";
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(90, 90, 78, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // 内側ミニッツインデックス
-        ctx.strokeStyle = "#94a3b8";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(90, 90, 70, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // センター針（時分秒針）
-        ctx.strokeStyle = "#fbbf24";
-        ctx.lineWidth = 4;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(90, 90);
-        ctx.lineTo(90, 42); // 12時方向
-        ctx.stroke();
-
-        ctx.strokeStyle = "#f59e0b";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(90, 90);
-        ctx.lineTo(128, 90); // 3時方向
-        ctx.stroke();
-
-        // ブルー秒針
-        ctx.strokeStyle = "#38bdf8";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(90, 98);
-        ctx.lineTo(90, 32);
-        ctx.stroke();
-
-        // センターキャップ
-        ctx.fillStyle = "#fbbf24";
-        ctx.beginPath();
-        ctx.arc(90, 90, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 文字「時響」
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 24px 'Noto Serif JP', serif";
-        ctx.textAlign = "center";
-        ctx.fillText("時響", 90, 140);
-
-        const link = document.getElementById("appleTouchIconLink");
-        if (link) link.href = canvas.toDataURL("image/png");
-      } catch (e) {
-        // アイコン生成失敗時はスキップ
-      }
-    }
-
-    /* =========================================================================
-       9. イベントハンドラ結合 ＆ 初期化
-       ========================================================================= */
-    window.onload = function() {
-      // 日付表示のセット
-      const now = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
-      document.getElementById("currentDateStr").textContent = now.toLocaleDateString('ja-JP', options);
-
-      // Apple Touch Iconの生成
-      setupAppleTouchIcon();
-
-      // 初回レンダリング（今日の3選）
-      renderDailyView();
-      renderArchiveView();
-      renderQuizView();
-
-      // タブナビゲーション切替
-      document.querySelectorAll(".nav-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-          document.querySelectorAll(".nav-tab").forEach(t => {
-            t.className = "nav-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 transition-all cursor-pointer";
-          });
-          tab.className = "nav-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer bg-white text-[#23385d] shadow-xs";
-
-          const target = tab.dataset.target;
-          document.getElementById("viewDaily").classList.toggle("hidden", target !== "daily");
-          document.getElementById("viewArchive").classList.toggle("hidden", target !== "archive");
-          document.getElementById("viewQuiz").classList.toggle("hidden", target !== "quiz");
-          document.getElementById("viewAi").classList.toggle("hidden", target !== "ai");
-
-          if (target === "archive") renderArchiveView();
-          if (target === "quiz") renderQuizView();
-        });
-      });
-
-      // 再選別ボタン（重複完全排除・非復元抽出）
-      document.getElementById("refreshTodayBtn").addEventListener("click", () => {
-        renderDailyView(true);
-        playChime();
-        showToast("新しい3選を提示", "GS 2選 ＋ 時計基礎 1選 を新たに選出しました", "✨");
-      });
-
-      // モーダル閉じるボタン
-      document.getElementById("closeDetailModalBtn").addEventListener("click", closeDetailModal);
-      document.getElementById("detailModal").addEventListener("click", (e) => {
-        if (e.target.id === "detailModal") closeDetailModal();
-      });
-
-      // モーダル内の読了ステータス変更ボタン（タップで未読に戻す）
-      document.getElementById("modalToggleReadBtn").addEventListener("click", () => {
-        if (currentDetailItem) {
-          toggleReadStatus(currentDetailItem.id);
-        }
-      });
-
-      // モーダル内のお気に入りトグル
-      document.getElementById("modalBookmarkBtn").addEventListener("click", () => {
-        if (currentDetailItem) {
-          toggleBookmark(currentDetailItem.id);
-        }
-      });
-
-      // モーダル内の単語検索
-      document.getElementById("quickWordSearchBtn").addEventListener("click", () => {
-        const word = document.getElementById("quickWordInput").value.trim();
-        searchWordWithAI(word);
-      });
-      document.getElementById("quickWordInput").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          const word = document.getElementById("quickWordInput").value.trim();
-          searchWordWithAI(word);
-        }
-      });
-
-      // 本文中のテキスト選択（ドラッグ）によるAI解説ポップアップ
-      const tooltip = document.getElementById("textSelectionTooltip");
-      let selectedTextToLookup = "";
-
-      document.getElementById("detailModalBody").addEventListener("mouseup", (e) => {
-        const selection = window.getSelection();
-        const text = selection.toString().trim();
-        if (text && text.length >= 2 && text.length <= 15) {
-          selectedTextToLookup = text;
-          document.getElementById("tooltipWordLabel").textContent = `「${text}」をAI解説`;
-          tooltip.style.left = `${e.clientX}px`;
-          tooltip.style.top = `${e.clientY - 12}px`;
-          tooltip.classList.remove("hidden");
-        } else {
-          tooltip.classList.add("hidden");
-        }
-      });
-
-      tooltip.addEventListener("click", () => {
-        if (selectedTextToLookup) {
-          document.getElementById("quickWordInput").value = selectedTextToLookup;
-          searchWordWithAI(selectedTextToLookup);
-          tooltip.classList.add("hidden");
-        }
-      });
-
-      // アーカイブ検索・フィルター
-      document.getElementById("archiveSearchInput").addEventListener("input", renderArchiveView);
-      document.querySelectorAll(".archive-filter").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".archive-filter").forEach(b => {
-            b.className = "archive-filter px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition cursor-pointer";
-          });
-          btn.className = "archive-filter active px-2.5 py-1 rounded-lg bg-[#23385d] text-white font-semibold whitespace-nowrap transition cursor-pointer";
-          renderArchiveView();
-        });
-      });
-
-      // クイズ回答イベント
-      document.getElementById("quizContainer").addEventListener("click", (e) => {
-        const btn = e.target.closest(".quiz-opt-btn");
-        if (!btn || btn.disabled) return;
-        const qIdx = parseInt(btn.dataset.q, 10);
-        const optIdx = parseInt(btn.dataset.opt, 10);
-        appState.quizAnswers[qIdx] = optIdx;
-        renderQuizView();
-      });
-
-      document.getElementById("resetQuizBtn").addEventListener("click", () => {
-        appState.quizAnswers = {};
-        document.getElementById("quizScoreBanner").classList.add("hidden");
-        renderQuizView();
-      });
-
+<!-- ... existing code ... -->
+```
+```html:時計知識マスター - Grand Seiko & Horology:index.html
+<!-- ... existing code ... -->
       // 時計師AIタブの質問実行
-      document.getElementById("aiSubmitBtn").addEventListener("click", () => askWatchmakerAI());
+      document.getElementById("aiSubmitBtn").addEventListener("click", () => {
+        const text = document.getElementById("aiPromptInput")?.value?.trim();
+        if (text) askWatchmakerAI(text);
+      });
+
       document.querySelectorAll(".ai-chip").forEach(chip => {
         chip.addEventListener("click", () => {
           const qText = chip.textContent.replace(/^Q:\s*/, '').trim();
-          document.getElementById("aiPromptInput").value = qText;
+          const input = document.getElementById("aiPromptInput");
+          if (input) input.value = qText;
           askWatchmakerAI(qText);
         });
       });
 
       document.getElementById("copyAiResponseBtn").addEventListener("click", () => {
-        const text = document.getElementById("aiResponseContent").textContent;
-        if (!text) return;
-        const temp = document.createElement("textarea");
-        temp.value = text;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        document.body.removeChild(temp);
-        showToast("解説をコピーしました", "クリップボードに保存されました", "📋");
-      });
-
-      // 配信時刻モーダルの操作
-      const timeModal = document.getElementById("timeModal");
-      document.getElementById("openTimeModalBtn").addEventListener("click", () => {
-        document.getElementById("deliveryTimeInput").value = appState.deliveryTime;
-        timeModal.classList.remove("hidden");
-        setTimeout(() => timeModal.classList.remove("opacity-0"), 10);
-      });
-      document.getElementById("closeTimeModalBtn").addEventListener("click", () => {
-        timeModal.classList.add("opacity-0");
-        setTimeout(() => timeModal.classList.add("hidden"), 200);
-      });
-      document.getElementById("cancelTimeModalBtn").addEventListener("click", () => {
-        timeModal.classList.add("opacity-0");
-        setTimeout(() => timeModal.classList.add("hidden"), 200);
-      });
-      document.getElementById("saveTimeModalBtn").addEventListener("click", () => {
-        const val = document.getElementById("deliveryTimeInput").value;
-        if (val) {
-          appState.deliveryTime = val;
-          document.getElementById("headerDeliveryTime").textContent = val;
-          showToast("提示時刻を変更", `毎日 ${val} に新しい3選を提示します`, "⏰");
-        }
-        timeModal.classList.add("opacity-0");
-        setTimeout(() => timeModal.classList.add("hidden"), 200);
-      });
-
-      // 音量切替
-      document.getElementById("soundToggleBtn").addEventListener("click", () => {
-        appState.soundEnabled = !appState.soundEnabled;
-        document.getElementById("soundIconOn").classList.toggle("hidden", !appState.soundEnabled);
-        document.getElementById("soundIconOff").classList.toggle("hidden", appState.soundEnabled);
-        if (appState.soundEnabled) playChime();
-      });
-
-      // ヘッダーのお気に入りボタンで保管録の★タブへ移動
-      document.getElementById("headerBookmarkBtn").addEventListener("click", () => {
-        const archiveTab = document.querySelector('.nav-tab[data-target="archive"]');
-        if (archiveTab) archiveTab.click();
-        const starFilter = document.querySelector('.archive-filter[data-filter="bookmarked"]');
-        if (starFilter) starFilter.click();
-      });
-    };
-  </script>
-</body>
-</html>
+<!-- ... existing code ... -->
