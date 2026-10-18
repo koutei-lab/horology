@@ -126,7 +126,6 @@
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-amber-100">
 
-  <!-- ヘッダー -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
     <div class="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
       <!-- ロゴ・タイトル -->
@@ -186,23 +185,22 @@
 
   <main class="max-w-2xl mx-auto px-4 py-3 flex-1 w-full space-y-3.5">
 
-    <!-- 本日のインフォメーションバナー -->
     <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs relative overflow-hidden space-y-2">
-      <!-- 上段: 日付と再選別ボタン -->
+      <!-- 上段: 日付とAI新規生成ボタン -->
       <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
         <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 min-w-0">
           <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
           <span id="currentDateStr" class="truncate font-medium text-slate-700">2026年10月18日(日)</span>
           <span class="text-slate-300 font-normal">|</span>
-          <span class="text-amber-800 font-semibold truncate">本日の厳選3知識</span>
+          <span class="text-amber-800 font-semibold truncate" id="bannerStatusLabel">AI執筆モード</span>
         </div>
 
-        <!-- 再選別ボタン（未読プールから新しい3選を表示） -->
-        <button id="refreshTodayBtn" class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-xs font-bold rounded-xl shadow-2xs transition active:scale-95 cursor-pointer">
-          <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <!-- 毎日新しい3選を生成するボタン（GS 1 + 機械式 2） -->
+        <button id="generateNewTopicsBtn" class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer">
+          <svg id="generateBtnIcon" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <span id="refreshBtnLabel">未読3選を表示</span>
+          <span id="generateBtnText">✨ 新しい3選を生成</span>
         </button>
       </div>
 
@@ -214,15 +212,14 @@
         </h2>
       </div>
 
-      <!-- 下段: 1行構成サブテキスト -->
+      <!-- 下段: 1行構成サブテキスト（GS 1選 ＋ 機械式 2選） -->
       <div class="pt-0.5">
         <p class="text-xs sm:text-[13px] text-slate-600 tracking-tight whitespace-nowrap overflow-x-auto scrollbar-none font-medium">
-          GSの独自境地 2選 ＋ 機械式時計の基礎教養 1選
+          GSの独自境地 1選 ＋ 機械式時計の基礎教養 2選
         </p>
       </div>
     </div>
 
-    <!-- ナビゲーションタブ -->
     <nav class="grid grid-cols-4 gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl border border-slate-200 text-xs">
       <button data-tab="daily" class="tab-btn active-tab flex items-center justify-center gap-1 py-2 rounded-xl transition text-slate-700 cursor-pointer">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -265,6 +262,15 @@
         </div>
       </div>
 
+      <!-- AI生成中ローディングプレースホルダー -->
+      <div id="aiGeneratingIndicator" class="hidden bg-white rounded-2xl p-6 border border-amber-200/90 text-center space-y-3 shadow-2xs">
+        <div class="inline-block w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <div class="space-y-1">
+          <h4 class="font-serif-jp text-sm font-bold text-slate-800">専属時計師AIが本日の3選を執筆中...</h4>
+          <p class="text-xs text-slate-500">グランドセイコー技術資料・機械式時計の工学原理から新しいテーマを厳選しています</p>
+        </div>
+      </div>
+
       <!-- 3枚の知識カード表示エリア -->
       <div id="dailyCardsContainer" class="space-y-3"></div>
     </section>
@@ -273,7 +279,7 @@
     <section id="archiveView" class="space-y-3 hidden">
       <div class="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2.5">
         <div class="relative">
-          <input type="text" id="archiveSearchInput" placeholder="キーワード検索（スプリングドライブ、9S、ザラツ、脱進機、ルビー...）" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-amber-500 text-slate-800 placeholder-slate-400">
+          <input type="text" id="archiveSearchInput" placeholder="キーワード検索（スプリングドライブ、9S、脱進機、姿勢差、ルビー...）" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-amber-500 text-slate-800 placeholder-slate-400">
           <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -282,12 +288,16 @@
         <!-- カテゴリ切り替えピル -->
         <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 text-xs">
           <button data-cat="all" class="cat-pill px-3 py-1.5 rounded-lg bg-[#23385d] text-white font-medium shrink-0 cursor-pointer">全件 (<span id="catCountAll">0</span>)</button>
-          <button data-cat="unread" class="cat-pill px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold shrink-0 cursor-pointer">未読のみ</button>
-          <button data-cat="mechanism" class="cat-pill px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">GS機構・キャリバー</button>
-          <button data-cat="design" class="cat-pill px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">GS意匠・工芸仕上げ</button>
-          <button data-cat="history" class="cat-pill px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">GS時計史・規格</button>
+          <button data-cat="unread" class="cat-pill px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold shrink-0 cursor-pointer">未読のみ (<span id="catCountUnread">0</span>)</button>
+          <button data-cat="gs" class="cat-pill px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-semibold shrink-0 cursor-pointer">グランドセイコー</button>
           <button data-cat="general" class="cat-pill px-3 py-1.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 font-semibold shrink-0 cursor-pointer">機械時計の基礎教養</button>
-          <button data-cat="bookmarked" class="cat-pill px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shrink-0 cursor-pointer">★ お気に入り</button>
+          <button data-cat="bookmarked" class="cat-pill px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">★ お気に入り</button>
+        </div>
+
+        <div class="pt-1 flex justify-end">
+          <button id="resetAllReadStatusBtn" class="text-[11px] text-slate-500 hover:text-amber-800 underline cursor-pointer">
+            ↻ 全ての読了ステータスを未読にリセット
+          </button>
         </div>
       </div>
 
@@ -353,7 +363,7 @@
           <textarea id="aiPromptInput" rows="3" placeholder="知りたい機構やモデル名、歴史について時計師に質問してください..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-amber-500 text-slate-800"></textarea>
 
           <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] text-slate-500">公式資料・時計工学基準に準拠</span>
+            <span class="text-[11px] text-slate-500">Gemini 3 Flash 連携</span>
             <button id="aiSubmitBtn" class="flex items-center gap-1.5 px-4 py-2 bg-[#23385d] hover:bg-[#1a2b49] text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer">
               <span>質問する</span>
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -402,14 +412,13 @@
         </button>
       </div>
 
-      <!-- モーダル本文スクロールエリア -->
+      <!-- モーダル本文スクロールエリア（行間 leading-[1.7]） -->
       <div id="modalContentScrollable" class="p-5 overflow-y-auto space-y-4 flex-1">
         <div>
           <h2 id="modalTitle" class="font-serif-jp text-xl sm:text-2xl font-bold text-slate-900 leading-snug tracking-tight">タイトル</h2>
           <p id="modalSubtitle" class="text-sm sm:text-base text-amber-800 font-medium mt-1 leading-snug">サブタイトル</p>
         </div>
 
-        <!-- 本文段落（適切な行間 leading-[1.7]、段落間 space-y-2.5） -->
         <div id="modalBody" class="text-[15px] sm:text-base leading-[1.7] text-slate-800 space-y-2.5 font-sans">
         </div>
 
@@ -509,14 +518,11 @@
 
   <script>
     /* =========================================================================
-       1. 知識データベース（合計33項目：GS 22選 ＋ 機械式時計の基礎教養 11選）
+       1. 知識ベース（初回即時表示およびフォールバック用：GS 1件 ＋ 機械式 2件）
        ========================================================================= */
-    const KNOWLEDGE_DATABASE = [
-      // -------------------------------------------------------------
-      // グランドセイコーの独自境地 (GS) : 全22項目
-      // -------------------------------------------------------------
+    const BASELINE_KNOWLEDGE = [
       {
-        id: "gs-01",
+        id: "gs-initial-01",
         type: "gs",
         category: "mechanism",
         categoryName: "GS機構・キャリバー",
@@ -536,410 +542,7 @@
         ]
       },
       {
-        id: "gs-02",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "セイコースタイル「44GS」が確立した歪みなき平面と稜線",
-        subtitle: "燦然と輝く時計を目指して生み出された9つのデザイン文法",
-        summary: "1967年に誕生した「44GS」により確立された意匠哲学。平面を主体とし、ザラツ研磨によって歪みのない鏡面を創出。光と影が織りなす日本の美意識を宿しています。",
-        body: [
-          "スイスの伝統的な丸みを帯びた造形に対し、グランドセイコーは『燦然と輝く時計』を目指し、平面を連続させたシャープな造形美を追求しました。",
-          "その核心は『平面と斜面の完璧な稜線』にあります。歪みのない平面同士が鋭利なエッジで交わることで、わずかな光も鋭く反射し、暗闇でも高い視認性と息を呑む立体感を生み出します。",
-          "インデックスの多面カットや太く鋭利な時分針も、すべてこのセイコースタイルに基づき、日本の美意識である『陰翳礼讃』を具現化しています。"
-        ],
-        deepDive: "ケースサイドの逆斜面形状は、手首を曲げた際の干渉を防ぎ、視覚的に時計を薄く見せる人間工学的配慮も兼ね備えています。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「セイコースタイル（44GSデザイン）」", url: "https://www.grand-seiko.com/jp-ja/about/design/seikostyle" }
-        ]
-      },
-      {
-        id: "gs-03",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "Caliber 9SA5「デュアルインパルス脱進機」の革新",
-        subtitle: "スイスレバー脱進機以来の構造的ブレイクスルー",
-        summary: "毎時36,000振動のハイビートでありながら約80時間のロングパワーリザーブを実現。ガンギ車からテンプへ直接動力を伝える直接衝撃と間接衝撃を組み合わせた世界初のハイブリッド構造です。",
-        body: [
-          "数百年間にわたり機械式時計の標準であった『スイスレバー脱進機』は、エネルギー伝達効率が約30〜40%に留まっていました。",
-          "2020年に発表されたCal.9SA5の『デュアルインパルス脱進機』は、テンプが一方向に振れる際はガンギ車から直接トルクを伝え、逆方向の際はアンクルを介して伝えます。",
-          "この飛躍的な効率向上に加え、独自の平巻きひげゼンマイ（オーバーコイル形状）とフリースプラング・テンプを組み合わせ、高精度と長期の等時安定性を両立しています。"
-        ],
-        deepDive: "極小パーツはMEMS（半導体微細加工技術）で製造され、0.0001mm精度の肉抜き形状により軽量化と注油保持力を極限まで高めています。",
-        readingTime: "4分",
-        sources: [
-          { name: "グランドセイコー公式「Caliber 9SA5 技術仕様書」", url: "https://www.grand-seiko.com/jp-ja/special/9sa5/" }
-        ]
-      },
-      {
-        id: "gs-04",
-        type: "gs",
-        category: "history",
-        categoryName: "GS時計史・規格",
-        title: "グランドセイコー規格（GSS）の過酷な検定基準",
-        subtitle: "スイス公認クロノメーター規格（COSC）を凌駕する検定日数と姿勢差",
-        summary: "平均日差-3.0〜+5.0秒、6姿勢、3温度（8℃/23℃/38℃）、17日間にわたる厳格な自社検定。公認クロノメーター規格（5姿勢・15日間）を超える厳しさで時計の真価を証明します。",
-        body: [
-          "1960年の誕生時、初代グランドセイコーはスイスクロノメーター優秀級基準に準拠して製造されました。しかし1966年以降、自らの手でさらに過酷な検定基準を打ち立てました。",
-          "それが『グランドセイコー規格（GSS）』です。一般的なスイス公認クロノメーター（COSC）が5姿勢・15日間のテストであるのに対し、GSSは腕から外して机に置く状態まで想定した『6姿勢』、検定期間も『17日間』に及びます。",
-          "さらに厳しい『スペシャル規格（平均日差-2.0〜+4.0秒）』も存在し、合格したムーブメントのみがゴールドのメダリオンや獅子の刻印を許されます。"
-        ],
-        deepDive: "第6の姿勢とは『12時下』です。腕を下げて歩行している際、最も長時間さらされる重力方向を検定に加えた実用主義の表れです。",
-        readingTime: "3分",
-        sources: [
-          { name: "Grand Seiko Inspection Certificate Standards", url: "https://www.grand-seiko.com/jp-ja/about/standards" }
-        ]
-      },
-      {
-        id: "gs-05",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "下地を鏡面に磨き抜く「ザラツ研磨」の職人技",
-        subtitle: "スズ板に手作業で当てて歪みを消し去るミクロンの超絶技巧",
-        summary: "回転する円盤の側面にケースを指先の感覚だけで押し当て、一切の歪みのない平面を作り出す鏡面研磨技術。日本でも限られた熟練職人しか扱えない伝説の技法です。",
-        body: [
-          "高級時計のケース研磨において、ザラツ研磨は『最終仕上げのための下地処理』として行われます。下地にわずかでも歪みがあれば、その上に施す筋目や鏡面は決して美しく整いません。",
-          "研磨機（ザラツ盤）の回転軸に対してケースを当てる角度、力加減はすべて研磨士の指先の感触のみ。ほんの0.01mmの狂いでケースのエッジがダレてしまい、すべてが台無しになります。",
-          "この過酷な工程を経て磨き上げられた稜線は、光を当てた際にブラックポリッシュ（黒光り）と呼ばれるほどの深い輝きを放ちます。"
-        ],
-        deepDive: "名称はかつてスイス・ジュネーブの研磨機械メーカー『ザルツ（Sallaz）』社製マシンを日本に導入した歴史に由来します。",
-        readingTime: "3分",
-        sources: [
-          { name: "信州 時の匠工房「ケース研磨技術の継承」", url: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture/shinshu" }
-        ]
-      },
-      {
-        id: "gs-06",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "年差±10秒を誇る「Caliber 9Fクオーツ」の異次元構造",
-        subtitle: "ツインパルス制御とバックラッシュオートアジャスト機構",
-        summary: "クオーツの常識を覆す太く堂々とした重い針を動かす『ツインパルス制御モーター』と、秒針の指示ズレと微振動を排除するヒゲゼンマイ内蔵のバックラッシュ制御機構を搭載。",
-        body: [
-          "通常のクオーツ時計では、消費電力を抑えるため極めて細く軽い針しか動かせません。しかし9Fクオーツは、1秒間に2回の信号を送る『ツインパルス制御』により、機械式時計と同じ太く威厳ある金属針の駆動に成功しました。",
-          "また、秒針が目盛りを指す際、歯車の遊び（バックラッシュ）による針のふらつきを抑えるため、ヘアスプリング（極小ヒゲゼンマイ）を組み込んだ『バックラッシュオートアジャスト機構』を採用しています。",
-          "これにより、目盛りの中央へ寸分の狂いもなくピタリと針が着地する、静かで完璧な運針美が成立しています。"
-        ],
-        deepDive: "内部は気密性を保つ『スーパーシールドキャビン構造』となっており、電池交換時に埃や湿気が輪列部へ侵入するのを防ぎ、保油性を飛躍的に高めています。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーウオッチ公式「9Fクオーツの世界」", url: "https://www.grand-seiko.com/jp-ja/about/movement/quartz" }
-        ]
-      },
-      {
-        id: "gs-07",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "自然の情景を型打ち彫刻する「白樺ダイヤル（SLGH005）」の美学",
-        subtitle: "グランドセイコースタジオ 雫石の周囲に広がる白樺林を表現",
-        summary: "機械彫刻のダイス（金型）に職人の手彫りを融合させ、木肌の凹凸と光の陰影を再現。日本の自然美と時計工芸が融合した世界的傑作ダイヤルです。",
-        body: [
-          "グランドセイコーの大きな特徴は、スイス時計のような幾何学模様（ギョーシェ）にとどまらず、日本の豊かな風土や自然の移ろいをダイヤルに宿す点です。",
-          "SLGH005に採用された『白樺ダイヤル』は、雫石の工房近くにある日本屈指の白樺美林から着想を得て作られました。型打ちの金型には手作業の繊細な彫刻が施され、塗装・ラップ研磨・クリアコートを幾重にも重ねることで、木肌の柔らかな質感と奥行きが表現されています。",
-          "2021年にはジュネーブ時計グランプリ（GPHG）でメンズウォッチ賞を受賞し、世界的な評価を確固たるものにしました。"
-        ],
-        deepDive: "光の当たる角度によって白樺の幹が銀色に浮き上がり、Cal.9SA5の鼓動とともに手元で雄大な自然の息吹を感じさせます。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「Evolution 9 Collection 白樺」", url: "https://www.grand-seiko.com/jp-ja/collections/slgh005" }
-        ]
-      },
-      {
-        id: "gs-08",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "Caliber 9RA2 次世代5Daysスプリングドライブの薄型化",
-        subtitle: "オフセットマジックレバーとデュアルバレルによる120時間駆動",
-        summary: "サイズを約0.8mm薄型化しながら、持続時間を従来の72時間から120時間（5日間）へ大幅延長。温度補正センサー内蔵の月差±10秒高精度キャリバー。",
-        body: [
-          "信州 時の匠工房が20年以上にわたるスプリングドライブの知見を結集して開発した次世代ムーブメントがCal.9RA2（9RA5）です。",
-          "サイズの異なる2つの香箱を配置する『デュアルバレル』によって約120時間の連続駆動を達成。さらに、自動巻き機構のマジックレバーを中央から横方向へ逃がす『オフセットマジックレバー』を採用し、大幅な薄型化に成功しました。",
-          "さらに水晶振動子とICを一体パッケージ化して温度変化を直接検知・補正することで、月差±10秒（日差±0.5秒相当）という驚異的な精度を実現しています。"
-        ],
-        deepDive: "受けの仕上げには『信州霧氷仕上げ』が施され、真冬の信州の森に広がる霧氷のきらめきがサファイアバックから鑑賞できます。",
-        readingTime: "4分",
-        sources: [
-          { name: "グランドセイコー公式「Caliber 9RA2 テクニカルガイド」", url: "https://www.grand-seiko.com/jp-ja/special/9ra2/" }
-        ]
-      },
-      {
-        id: "gs-09",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "世界初、定荷重とトゥールビヨンを同軸統合した「Kodo（SLGT003）」",
-        subtitle: "コンスタントフォースとキャリッジが一体となって奏でる16ビートの鼓動",
-        summary: "機械式時計の究極の複雑機構。ゼンマイのトルク変動をなくす『定荷重機構』と重力の影響を相殺する『トゥールビヨン』を世界で初めて同軸・一体型で配置しました。",
-        body: [
-          "2022年に発表されたグランドセイコー初のメカニカル複雑時計『Kodo（心跳）』は、時計史に刻まれる技術的偉業です。",
-          "通常は別々の場所に配置されるコンスタントフォース機構を、トゥールビヨンキャリッジの内部・同一軸上に組み込むことで、エネルギー伝達ロスを極限まで排除しました。",
-          "外側のキャリッジは毎秒1回回転し、内側のキャリッジは毎秒8振動。2つの調速が重なり合うことで、まるで心臓の鼓動（16分音符の規則正しいリズム）のような澄んだ音色を響かせます。"
-        ],
-        deepDive: "ジュネーブ時計グランプリ（GPHG 2022）にて、最高栄誉のひとつである『クロノメトリー賞』を満場一致で受賞しました。",
-        readingTime: "4分",
-        sources: [
-          { name: "Grand Seiko Kodo Constant-force Tourbillon 技術解説", url: "https://www.grand-seiko.com/jp-ja/special/kodo/" }
-        ]
-      },
-      {
-        id: "gs-10",
-        type: "gs",
-        category: "history",
-        categoryName: "GS時計史・規格",
-        title: "諏訪精工舎と亀戸第二精工舎「社内切磋琢磨が生んだ技術進化」",
-        subtitle: "グランドセイコーとキングセイコーが競い合った黄金時代",
-        summary: "1960年代、長野の諏訪精工舎と東京の第二精工舎（亀戸）という2つの独立工場が激しい社内競争を展開。この健全なライバル関係こそが高精度時計を世界水準へ押し上げました。",
-        body: [
-          "セイコーの歴史において特筆すべきは、2つのマニュファクチュールによる社内競争です。初代GSを生み出した諏訪に対し、亀戸は『キングセイコー』を世に送り出し、互いに精度とデザインの極限を競い合いました。",
-          "亀戸が開発した高振動キャリバーや薄型化技術に対し、諏訪が自動巻きや高精度化で応酬。このライバル関係が、日本の時計技術を短期間でスイス勢の頂点へと引き上げる原動力となりました。",
-          "現代の「グランドセイコースタジオ 雫石（岩手/旧亀戸系）」と「信州 時の匠工房（長野/旧諏訪系）」という2大工房体制の起源もここにあります。"
-        ],
-        deepDive: "文字盤の6時位置に配されたマーク（諏訪の渦巻きマーク、亀戸の雷マーク）を見ることで、当時の製造工房を判別できます。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーミュージアム 銀座「セイコーのあゆみ」", url: "https://museum.seiko.co.jp/" }
-        ]
-      },
-      {
-        id: "gs-11",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "「雪白（スノーフレーク / SBGA211）」信州の山に積もる風紋のダイヤル",
-        subtitle: "純白の和紙のような質感とブライトチタンの驚異的な軽さ",
-        summary: "信州 時の匠工房から望む穂高連峰の雪景色をモチーフにした世界的アイコンモデル。塗料の白さではなく、微細な表面凹凸の乱反射によって生み出される純白の美です。",
-        body: [
-          "『雪白（スノーフレーク）』の名で世界中のコレクターに愛されるSBGA211。文字盤には一般的な白塗料を厚塗りするのではなく、特殊な型打ちパターンの上に銀メッキを施し、光の乱反射によって柔らかな新雪の質感を再現しています。",
-          "そこを音もなく滑るブルースチールの秒針は、澄み切った信州の冬空を想起させます。",
-          "ケースにはステンレスより約30%軽量で耐食性に優れる『ブライトチタン』を採用。ザラツ研磨が極めて困難とされるチタン素材を鏡面に磨き上げる職人技が光ります。"
-        ],
-        deepDive: "ダイヤル表面の微細な凹凸は、冬の強風が雪原に描く『風紋（シュカブラ）』の有機的な造形美を忠実にトレースしています。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「Heritage Collection SBGA211」", url: "https://www.grand-seiko.com/jp-ja/collections/sbga211" }
-        ]
-      },
-      {
-        id: "gs-12",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "東北大学と共同開発した自社製ゼンマイ合金「スプラロン（SPRON）」",
-        subtitle: "高弾性・耐疲労性・耐食性・耐磁性を兼ね備えたマニュファクチュールの結晶",
-        summary: "機械式時計の生命線であるヒゲゼンマイと主ゼンマイ。コバルト・ニッケル基の特殊合金を自社開発することで、数十年にわたる等時安定性と強いトルクを実現しました。",
-        body: [
-          "世界中に数ある時計ブランドの中でも、ヒゲゼンマイの合金素材から自社で溶解・圧延・熱処理できるマニュファクチュールは片手で数えるほどしかありません。",
-          "セイコーは東北大学金属材料研究所との共同研究により、独自の高性能合金『SPRON（スプラロン）』を開発しました。",
-          "主ゼンマイ用のSPRON510は驚異的な高弾性と破断強度を誇り、ヒゲゼンマイ用のSPRON610は強い耐衝撃性と耐磁性を備え、日常の磁気環境でも精度を維持します。"
-        ],
-        deepDive: "極薄のリボン状に圧延されたヒゲゼンマイは、髪の毛よりも細く、厚みの公差は1万分の1ミリメートル単位で管理されています。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーインスツル公式「SPRON合金の特性」", url: "https://www.sii.co.jp/jp/me/spron/" }
-        ]
-      },
-      {
-        id: "gs-13",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "半導体技術を応用した「MEMS（微細加工技術）」による脱進機",
-        subtitle: "0.001mm精度の超軽量パーツと注油保持ステップの形成",
-        summary: "従来のプレス加工では不可能な複雑造形を半導体フォトリソグラフィ技術で実現。アンクルとガンギ車の軽量化と保油性を劇的に高めました。",
-        body: [
-          "機械式時計の脱進機パーツは、1秒間に何回も急激な発停を繰り返すため、わずかな重量がエネルギーロスに直結します。",
-          "グランドセイコーは、半導体の製造技術である『MEMS（Micro Electro Mechanical Systems）』を時計部品の製造に世界で先駆けて本格導入しました。",
-          "これにより、ガンギ車の歯先を階段状に肉抜きして潤滑油を保持する微細なポケットを設けたり、アンクルを中空スケルトン化して慣性モーメントを劇的に低減することに成功しました。"
-        ],
-        deepDive: "パーツ表面の平滑度はナノメートル単位に達し、摩擦抵抗が激減したことでパーツ寿命とエネルギー効率が飛躍的に向上しました。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「MEMS技術による部品製造」", url: "https://www.grand-seiko.com/jp-ja/about/movement/mechanical" }
-        ]
-      },
-      {
-        id: "gs-14",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "「御神渡り（おみわたり / SBGY007）」諏訪湖の神秘を宿す手巻きスプリングドライブ",
-        subtitle: "真冬の湖面にせり上がる氷の山脈を型打ちした薄型ドレスウォッチ",
-        summary: "厳冬期の諏訪湖で氷が割れてせり上がる自然現象『御神渡り』を表現したアイスブルーダイヤル。手巻きキャリバー9R31を搭載し、わずか10.2mmの薄さを実現。",
-        body: [
-          "信州 時の匠工房の眼前に広がる諏訪湖では、真冬の厳しい寒さによって湖面の氷が膨張し、裂け目が山脈のようにせり上がる『御神渡り（おみわたり）』という神聖な現象が見られます。",
-          "SBGY007の文字盤は、この氷の隆起を思わせる柔らかな起伏と淡いアイスブルーのグラデーションによって表現されています。",
-          "薄型の手巻きスプリングドライブCal.9R31を搭載し、クラシカルなボックス型サファイアガラスと相まって、極めてエレガントな袖口への収まりを誇ります。"
-        ],
-        deepDive: "1つの香箱の中に2つのゼンマイを並列に納めた『デュアルスプリングバレル』により、薄型でありながら約72時間の持続時間を確保しています。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「Elegance Collection SBGY007」", url: "https://www.grand-seiko.com/jp-ja/collections/sbgy007" }
-        ]
-      },
-      {
-        id: "gs-15",
-        type: "gs",
-        category: "history",
-        categoryName: "GS時計史・規格",
-        title: "スイス天文台クロノメーターコンクールを席巻した歴史",
-        subtitle: "1968年、スイス時計界を震撼させたセイコーの精度上位独占",
-        summary: "1960年代、時計の精度世界一を決めるニューシャテルおよびジュネーブ天文台コンクールに挑戦。短期間で上位を独占し、世界に日本の技術力を知らしめました。",
-        body: [
-          "かつてスイスの天文台コンクールは、世界中の名門マニュファクチュールが威信をかけて精度を競い合う最高峰の舞台でした。",
-          "初挑戦の1964年には惨敗を喫したセイコーでしたが、わずか数年で驚異的な技術革新を遂げ、1967年には上位を席巻。1968年のジュネーブ天文台コンクール機械式腕時計部門では、実質的な上位（企業賞）を独占しました。",
-          "このコンクール挑戦で培われた高振動化や温度特性の補正技術が、現代のグランドセイコー9Sキャリバーの高精度へと直接受け継がれています。"
-        ],
-        deepDive: "あまりの日本勢の急成長ぶりに、スイスのコンクール自体が開催中止に追い込まれたという伝説的なエピソードが残されています。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーミュージアム 銀座「天文台コンクールへの挑戦」", url: "https://museum.seiko.co.jp/" }
-        ]
-      },
-      {
-        id: "gs-16",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "「テンタグラフ（SLGC001）」GS初の機械式自動巻クロノグラフ",
-        subtitle: "毎時36,000振動のハイビートで3日間（72時間）の持続時間を達成",
-        summary: "Ten beats（毎秒10振動）、Three days（3日間持続）、Automatic（自動巻き）、Chronograph（ストップウォッチ）の頭文字を冠した次世代スポーツキャリバー9SC5。",
-        body: [
-          "2023年に誕生した『テンタグラフ』は、グランドセイコーの機械式時計史におけるマイルストーンです。",
-          "高振動（毎秒10振動）のクロノグラフはエネルギー消費が激しく、長時間のパワーリザーブ確保が至難とされてきました。しかし、デュアルインパルス脱進機と高効率輪列、ツインバレルを組み合わせることで、クロノグラフ作動時でも世界最長クラスの約72時間駆動を達成しました。",
-          "垂直クラッチとコラムホイールを採用し、計測ボタンを押した瞬間の針飛びを完全に抑えた心地よい操作感を誇ります。"
-        ],
-        deepDive: "文字盤パターンには、雫石スタジオから望む名峰・岩手山の山肌をダイナミックに表現した『岩手山パターン』のミッドナイトブルーが採用されています。",
-        readingTime: "4分",
-        sources: [
-          { name: "グランドセイコー公式「Evolution 9 Collection テンタグラフ」", url: "https://www.grand-seiko.com/jp-ja/special/tentagraph/" }
-        ]
-      },
-      {
-        id: "gs-17",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "「マイクロアーティスト工房」が生み出す奇跡の仕上げ",
-        subtitle: "信州の特権アトリエで熟練工芸士が手作業で仕上げる至高の面取り",
-        summary: "超複雑時計やマスターピースを手掛ける精鋭集団。受け（ブリッジ）の面取りをエルダー（西洋ニワトコ）の木棒で手作業で磨き上げる極限の工芸美。",
-        body: [
-          "信州 時の匠工房の一角に、わずか十数名の最高峰の匠のみで構成される『マイクロアーティスト工房』が存在します。",
-          "彼らが手掛けるCredor『Eichi（叡智）』やGrand Seikoの限定モデルは、パーツ1つひとつの面取りや鏡面仕上げをすべて手作業で行います。",
-          "金属の角を削り落とした後、乾燥させた西洋ニワトコの枝の芯に微細な研磨剤をつけ、顕微鏡を覗きながら歪みのない滑らかな曲面へと磨き上げていきます。"
-        ],
-        deepDive: "この工房で生み出される時計は年間にわずか数十本程度。世界中の時計愛好家からスイスのフィリップ・デュフォー氏らに匹敵する仕上げと絶賛されています。",
-        readingTime: "3分",
-        sources: [
-          { name: "WebChronos「マイクロアーティスト工房の深遠」", url: "https://www.webchronos.net/" }
-        ]
-      },
-      {
-        id: "gs-18",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "1/2000秒で切り替わる「瞬間日送りカレンダー」のメカニズム",
-        subtitle: "トルクを徐々に蓄積し、午前0時に一瞬で弾き飛ばすカムとバネの妙技",
-        summary: "通常の時計が数時間かけてゆっくり日付板を動かすのに対し、瞬きよりも速い1/2000秒で日付がカチリと切り替わる機構。9Fクオーツ等に搭載されています。",
-        body: [
-          "一般的なカレンダー付き腕時計は、夜の21時頃から翌日午前1時頃にかけて、歯車がゆっくりと日付ディスクを押し回すため、数字が傾いて中途半端に見える時間帯が存在します。",
-          "グランドセイコーの多くのモデル（Cal.9Fクオーツや一部の機械式）には、『瞬間日送りカム』と強力なバネレバーが組み込まれています。",
-          "歯車の回転トルクをカムによって徐々に蓄え、午前0時を迎えた瞬間にバネの力が解放され、わずか1/2000秒という超高速で日付ディスクを1コマだけ弾き飛ばします。"
-        ],
-        deepDive: "この切り替えの瞬間は人間の目では捉えられないほど一瞬であり、切り替わった後の日付位置の正確さも極めて高く設計されています。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「Caliber 9F テクニカルストーリー」", url: "https://www.grand-seiko.com/jp-ja/about/movement/quartz" }
-        ]
-      },
-      {
-        id: "gs-19",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "「エボリューション9 スタイル」が生み出した低重心と装着感の進化",
-        subtitle: "セイコースタイルを次世代へと昇華させた人間工学的プロポーション",
-        summary: "2020年に発表された新意匠体系。重心を低く抑えたケース構造、幅広のブレスレット、視認性をさらに高めた立体的な12時インデックス。",
-        body: [
-          "1967年の44GSで確立されたセイコースタイルを、現代のライフスタイルに合わせて進化させたのが『エボリューション9 スタイル』です。",
-          "ムーブメントを可能な限り裏蓋側に近づけてケース全体の重心を低く設計。さらにラグ幅とブレスレットの幅を広く取ることで、腕を激しく振っても時計が横滑りしない吸い付くような装着感を実現しました。",
-          "力強い多面カットのインデックスは、太さを12時位置で従来の2倍以上に設定し、一目で瞬時に時刻を判読できる圧倒的な実用性を誇ります。"
-        ],
-        deepDive: "針の先端の形状や、ザラツ研磨による鏡面と繊細な筋目（ヘアライン）の対比も再定義され、より深みのある美意識が息づいています。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「Evolution 9 Style デザイン哲学」", url: "https://www.grand-seiko.com/jp-ja/about/design/evolution9style" }
-        ]
-      },
-      {
-        id: "gs-20",
-        type: "gs",
-        category: "design",
-        categoryName: "GS意匠・工芸仕上げ",
-        title: "伝統工芸の厚銀放射仕上げ「放射ダイヤル」の陰影",
-        subtitle: "銀メッキを厚く施し繊細なブラシ彫刻を施す日本のクラフトマンシップ",
-        summary: "光が当たると中心から幾筋もの繊細な光条が広がるサンレイ仕上げ。一般的な塗装ダイヤルとは異なる、金属そのものが呼吸しているような光沢感を生み出します。",
-        body: [
-          "グランドセイコーのクラシックなシルバー文字盤には、伝統的な『厚銀放射仕上げ』が採用されています。",
-          "真鍮のベース板に高純度の銀メッキを通常よりもはるかに厚く施し、職人が専用の回転ハケを用いてミクロン単位の微細な放射状の溝を刻み込んでいきます。",
-          "その上に極薄のクリア塗装を何層も重ねて研磨することで、派手なテカリを抑えた、奥深くシルキーな輝きを宿す文字盤が完成します。"
-        ],
-        deepDive: "この放射模様と鋭く多面カットされたインデックスが交差することで、どんなに薄暗い場所でもわずかな環境光を拾って時間を知らせてくれます。",
-        readingTime: "3分",
-        sources: [
-          { name: "グランドセイコー公式「文字盤の製造工程」", url: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture" }
-        ]
-      },
-      {
-        id: "gs-21",
-        type: "gs",
-        category: "mechanism",
-        categoryName: "GS機構・キャリバー",
-        title: "自社で人工水晶を育成する「オートクレーブ（高温高圧釜）」の執念",
-        subtitle: "90日間の歳月をかけて超高純度の水晶結晶を育てるマニュファクチュール",
-        summary: "9Fクオーツの驚異的な精度を支えるため、外部から水晶を購入せず、自社の巨大な高圧釜で巨大な人工水晶結晶をイチから育成しています。",
-        body: [
-          "クオーツ時計の心臓部である『水晶振動子』。世界中のほとんどのメーカーが外部サプライヤーから仕入れる中、セイコーは水晶そのものを自社で栽培・育成しています。",
-          "高さ数階分に相当する巨大な『オートクレーブ』の中に超純水と原料を満たし、約350℃・1000気圧を超える極限環境を約90日間にわたって一定に維持します。",
-          "この過酷な工程を経て成長した不純物の極めて少ない水晶原石から、振動特性の優れた部分だけを選び出し、さらに数ヶ月のエージングを経て選別されたエリート水晶のみが9Fに組み込まれます。"
-        ],
-        deepDive: "さらに完成した水晶振動子とICをセットにして、1日540回にも及ぶ温度計測を行い、個体ごとの特性に合わせたプログラム補正を施しています。",
-        readingTime: "3分",
-        sources: [
-          { name: "信州 時の匠工房「クオーツマニュファクチュール」", url: "https://www.grand-seiko.com/jp-ja/worldofgrandseiko/manufacture/shinshu" }
-        ]
-      },
-      {
-        id: "gs-22",
-        type: "gs",
-        category: "history",
-        categoryName: "GS時計史・規格",
-        title: "初代グランドセイコー（1960年）誕生「世界最高級への挑戦」",
-        subtitle: "スイス製高級時計に追いつき、追い越すという日本の誇り",
-        summary: "1960年12月18日、諏訪精工舎で誕生したファーストモデル。歩度証明書を添付し、スイス公認優秀級クロノメーターと同等以上の精度を国内で初めて実証しました。",
-        body: [
-          "第二次世界大戦後、日本の時計産業は復興を遂げましたが、世界市場におけるスイス時計の牙城は依然として圧倒的でした。",
-          "『スイス製高級時計に比肩する、いやそれを超える世界最高峰の国産時計を作る』という強い信念のもと、当時の持てる最高峰の技術と熟練工の手作業を結集して生み出されたのが初代グランドセイコーです。",
-          "14Kゴールドフィルド（金貼り）のケース、太いドルフィン針、裏蓋に誇らしげに刻まれた『獅子のメダリオン』は、百獣の王のごとく時計界の頂点を目指すという決意の象徴でした。"
-        ],
-        deepDive: "当時の大卒初任給が約1万3,000円だった時代に、初代GSの価格は2万5,000円。極めて高価でありながら、日本の技術の結晶として絶大な賞賛を受けました。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーミュージアム 銀座「初代グランドセイコーの誕生」", url: "https://museum.seiko.co.jp/collections/history/grand-seiko/" }
-        ]
-      },
-
-      // -------------------------------------------------------------
-      // 機械時計の基礎教養 (General Horology) : 全11項目
-      // -------------------------------------------------------------
-      {
-        id: "gen-01",
+        id: "gen-initial-01",
         type: "general",
         category: "general",
         categoryName: "機械時計の基礎教養",
@@ -958,7 +561,7 @@
         ]
       },
       {
-        id: "gen-02",
+        id: "gen-initial-02",
         type: "general",
         category: "general",
         categoryName: "機械時計の基礎教養",
@@ -975,219 +578,9 @@
         sources: [
           { name: "精密工学会誌「機械式時計の歩度と姿勢差特性に関する研究」", url: "https://www.jstage.jst.go.jp/" }
         ]
-      },
-      {
-        id: "gen-03",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "自動巻きの2大方式「マジックレバー」vs「リバーサー方式」",
-        subtitle: "腕のわずかな動きを両方向巻き上げに変える巧みな機構",
-        summary: "ローターが左右どちらに回転してもゼンマイを一方向に巻き上げる仕組み。部品点数を極限まで減らした爪機構（マジックレバー）と、遊星歯車を用いたクラッチ機構（リバーサー）。",
-        body: [
-          "初期の自動巻きは一方向にローターが回った時だけゼンマイを巻き上げていましたが、現代の時計の多くは『両方向巻き上げ』を実現しています。",
-          "1つはスイス時計に広く使われる『リバーサー方式』で、内部に逆回転防止のラチェット爪を内蔵した切り替え車を用います。滑らかな巻き上げ感が特徴ですが、微細な歯車の摩耗や定期的な洗浄注油が不可欠です。",
-          "もう1つはセイコーが1959年に発明した『マジックレバー方式』です。偏心ピンについたV字型の爪レバーが、ローターの往復運動を直接巻き上げ歯車へと伝達します。わずか数個の堅牢なパーツで構成され、驚異的な耐久性と高効率を誇ります。"
-        ],
-        deepDive: "マジックレバーのシンプルな美しさは、スイスの高級マニュファクチュール（IWCのペラトン方式やカルティエ等）にも大きな影響を与えました。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーミュージアム銀座「自動巻腕時計の発展」", url: "https://museum.seiko.co.jp/" }
-        ]
-      },
-      {
-        id: "gen-04",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "時計の中にルビーが入っている理由「人工ルビー軸受と石数」",
-        subtitle: "金属同士の焼き付きを防ぎ、数十年単位の精度を支える宝石",
-        summary: "文字盤や裏蓋に記される『24 JEWELS』などの石数表示。モース硬度9を誇るコランダム（合成ルビー）を歯車の軸受に用いることで、金属摩耗とエネルギーロスを防止しています。",
-        body: [
-          "機械式時計の内部には、高速で回転する細い金属軸（ホゾ）が無数に存在します。もし金属同士で受け止めてしまうと、油が切れた瞬間に摩耗し、軸が削れて時計は止まってしまいます。",
-          "そこで使用されるのが、ダイヤモンドに次ぐ硬度を誇る『人工ルビー（コランダム）』です。ルビーは摩擦係数が極めて低く、研磨によって完璧な鏡面が得られるため、歯車の回転抵抗を劇的に抑えます。",
-          "一般的な手巻き時計で17石、自動巻きで21〜24石程度が標準的であり、主要な回転軸のすべてにルビー軸受（穴石、伏せ石、爪石など）が配置されています。"
-        ],
-        deepDive: "かつては天然のルビーが使われていましたが、1902年にオーギュスト・ヴェルヌイユが火炎溶融法による人工ルビー合成に成功して以来、品質が均一な合成石が標準となりました。",
-        readingTime: "3分",
-        sources: [
-          { name: "日本時計協会「時計修理技術講習テキスト」", url: "https://www.jcwa.or.jp/" }
-        ]
-      },
-      {
-        id: "gen-05",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "精度を追い込む2大手法「フリースプラング」vs「緩急針」",
-        subtitle: "ヒゲゼンマイの長さを変えるか、テンプの慣性モーメントを変えるか",
-        summary: "時計の進み遅れを微調整する構造。コストパフォーマンスに優れた『緩急針方式』と、長期安定性と等時性に優れる高級機の証『フリースプラング（マスロット方式）』。",
-        body: [
-          "テンプの往復振動のスピードを調整する方法には、大きく2つのアプローチがあります。",
-          "古くから普及している『緩急針（レギュレーター）』は、ヒゲゼンマイを挟み込むピンを動かして、ゼンマイの『有効長』を物理的に伸縮させて周期を変える方式です。調整が容易ですが、衝撃で針がズレやすい弱点があります。",
-          "一方、現代の高級機で主流の『フリースプラング』は、ヒゲゼンマイの長さを固定し、テンプの輪に取り付けられた微小な偏心ネジ（チラネジやマスロット）を回して『テンプ自体の重量配分（慣性モーメント）』を変えて調整します。フィギュアスケート選手が腕を広げると回転がゆっくりになる原理と同じです。"
-        ],
-        deepDive: "フリースプラングは衝撃に強く長期の等時性に優れますが、高度な組み立て技術と微調整スキルが時計師に要求されます。",
-        readingTime: "3分",
-        sources: [
-          { name: "時計工学テキスト「調速・脱進機構の設計」", url: "https://www.jcwa.or.jp/" }
-        ]
-      },
-      {
-        id: "gen-06",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "機械式時計の定期オーバーホールと「潤滑油の寿命・エピラム処理」",
-        subtitle: "3〜5年に一度のメンテナンスが必要とされる科学的理由",
-        summary: "時計内部には5種類以上の異なる粘度の特殊オイルが塗布されています。油の経年劣化や揮発を防ぐフッ素コーティング（エピラム処理）と定期分解掃除の重要性。",
-        body: [
-          "『時計が今も正常に動いているから分解掃除（オーバーホール）は不要』と考えるのは危険です。機械式時計の定期メンテが必要な最大の理由は『油の劣化と乾き』にあります。",
-          "脱進機や輪列の軸受には、わずか数マイクロリットルの合成油が差されていますが、3〜5年で酸化・蒸発・硬化し、潤滑能力を失ってしまいます。油が切れた状態で動き続けると、ルビーと金属軸が直接擦れ合い、部品が削れてしまいます。",
-          "また、オイルが表面張力を失って周囲に拡散するのを防ぐため、パーツ表面に極薄のフッ素被膜を形成する『エピラム処理』というハイテク化学処理が施されています。"
-        ],
-        deepDive: "オーバーホールでは数百のパーツを完全に分解・超音波洗浄し、摩耗部品を交換した上で、箇所ごとに最適なオイルをミクロン単位で再注油します。",
-        readingTime: "3分",
-        sources: [
-          { name: "一般社団法人 日本時計協会「定期メンテナンスの必要性」", url: "https://www.jcwa.or.jp/knowledge/qa/repair.html" }
-        ]
-      },
-      {
-        id: "gen-07",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "振動数の科学「ハイビート（36,000振動）」vs「ロービート」",
-        subtitle: "外乱に強い高精度か、部品寿命とパワーリザーブの長さか",
-        summary: "1秒間に何回テンプが往復するかを示す振動数。毎時28,800振動（8振動）が現代の標準ですが、GSなどの毎時36,000振動（10振動）は外部の衝撃に負けない圧倒的な等時安定性を誇ります。",
-        body: [
-          "機械式時計の文字盤を眺めると、針の進み方に違いがあります。これはテンプの振動数（ビート数）によるものです。",
-          "『ハイビート（毎秒10振動・毎時36,000振動）』は、コマを高速で回した時と同じようにジャイロ効果が強く働き、腕を振った時の衝撃や重力変化の影響を受けにくいため、極めて安定した精度を保ちます。しかし、高速回転による注油切れや部品摩耗が課題となります。",
-          "一方、『ロービート（毎秒6振動・毎時21,600振動など）』はエネルギー消費が穏やかで部品への負担が少なく、ロングパワーリザーブを実現しやすいメリットがあります。"
-        ],
-        deepDive: "グランドセイコーは、自社合金スプラロンとMEMSによる保油ステップの導入によって、ハイビートの弱点であった摩耗と持続時間の課題を克服しました。",
-        readingTime: "3分",
-        sources: [
-          { name: "セイコーウオッチ公式「メカニカルハイビートの世界」", url: "https://www.grand-seiko.com/jp-ja/about/movement/mechanical" }
-        ]
-      },
-      {
-        id: "gen-08",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "時計を狂わせる見えない敵「磁気帯び」と現代の耐磁設計",
-        subtitle: "スマートフォンやPCの磁石がヒゲゼンマイに吸着するメカニズム",
-        summary: "突然時計が1日に数十分も進む現象の多くは『磁気帯び』が原因。金属製の極細ヒゲゼンマイが磁化してくっつき、実質的な長さが短くなることで急激な進みが発生します。",
-        body: [
-          "現代の生活環境には、スマートフォンのスピーカー、ノートPC、マグネット式バッグ留め具など、強力な磁石が無数に存在します。",
-          "機械式時計の心臓部であるヒゲゼンマイが磁気を帯びると、ゼンマイ同士が磁力で引き合いくっついてしまいます。すると振り子の糸が短くなった状態と同じになり、テンプが猛烈なスピードで往復して、時計が1日に数十分も異常に進んでしまいます。",
-          "これを防ぐため、軟鉄製のインナーケースでムーブメントを包み込んで磁力線を逃がすシールド構造や、磁気の影響を一切受けないシリコン製ヒゲゼンマイの採用が進んでいます。"
-        ],
-        deepDive: "軽い磁気帯びであれば、時計店にある『消磁器（デガウザー）』を用いて交番磁界をかけることで、数秒で元通りに復元できます。",
-        readingTime: "3分",
-        sources: [
-          { name: "日本工業規格 JIS B 7024「耐磁携帯時計」仕様基準", url: "https://www.kikakurui.com/" }
-        ]
-      },
-      {
-        id: "gen-09",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "主ゼンマイを収める「香箱（バレル）」と等トルクの追求",
-        subtitle: "巻き始めとほどけ終わりで変化するエネルギーを均一にする技術",
-        summary: "ゼンマイが満タンの時と解けかけの時で時計の精度が変わる『トルク抜け』。長いゼンマイをコンパクトに収め、トルク伝達を平準化する香箱の秘密。",
-        body: [
-          "機械式時計のエネルギー源である主ゼンマイは、頑丈な歯車付きの円形ケース『香箱（バレル）』の中に渦巻き状に納められています。",
-          "ゼンマイは巻き始めが最も力が強く、ほどけるにつれて徐々にトルクが低下します。このトルクの低下はテンプの振り角を落とし、精度のズレを生む原因となります。",
-          "現代の時計では、ゼンマイの厚みを端に向かって徐々に変化させたり、2つの香箱を並列・直列に連結する『ツインバレル』を採用することで、駆動時間全体にわたってフラットで均一なトルク供給を実現しています。"
-        ],
-        deepDive: "自動巻き時計の香箱内部には、ゼンマイが巻き上がりすぎた時に外壁を滑って空転する『スリッピングアタッチメント』という安全クラッチ機構が組み込まれています。",
-        readingTime: "3分",
-        sources: [
-          { name: "時計工学教科書「主ゼンマイと輪列の力学」", url: "https://www.jcwa.or.jp/" }
-        ]
-      },
-      {
-        id: "gen-10",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "時計界の頂点「三大複雑機構（グランド・コンプリケーション）」",
-        subtitle: "トゥールビヨン、永久カレンダー、ミニッツリピーターのロマン",
-        summary: "重力を克服する調速機、閏年まで自動判別するメカニカルカレンダー、現在時刻をハンマーと鐘の音で奏でる機構。数百個の微小パーツが織りなす工芸の極み。",
-        body: [
-          "腕時計の世界において、最高峰の技術的頂点とされるのが『世界三大複雑機構』です。",
-          "1つ目は、姿勢差を平均化するため調速機全体を毎分1回転させる『トゥールビヨン』。2つ目は、大の月・小の月、さらには4年に1度のうるう年（2月29日）まで歯車のプログラムで自動計算する『永久カレンダー（パーペチュアルカレンダー）』。",
-          "そして3つ目が、ケース側面のレバーを引くと、高低2つの音色のハンマーがゴングを打ち、現在時刻（時・15分・分単位）を美しい鐘の音で知らせる『ミニッツリピーター』です。"
-        ],
-        deepDive: "これらを1つの時計に凝縮したモデルは『グランド・コンプリケーション』と呼ばれ、億単位の価格がつくことも珍しくありません。",
-        readingTime: "4分",
-        sources: [
-          { name: "FHスイス時計協会「高級時計の複雑機構」", url: "https://www.fhs.jp/" }
-        ]
-      },
-      {
-        id: "gen-11",
-        type: "general",
-        category: "general",
-        categoryName: "機械時計の基礎教養",
-        title: "日常の安心を支える「ねじ込み式リューズ」と防水パッキン",
-        subtitle: "水圧と湿気からムーブメントを護るOリングとスクリューロック",
-        summary: "時計の弱点であるリューズの隙間を二重三重にブロックする構造。ねじ込むことでゴムパッキンを押し潰し、水分子の侵入を物理的に遮断します。",
-        body: [
-          "機械式時計にとって、水分や湿気は内部のサビや油の乳化を引き起こす最大の天敵です。針回しや巻き上げを行う『リューズの穴』は、構造上の最大の侵入口となります。",
-          "これを克服したのが『ねじ込み式リューズ（スクリューダウン・クラウン）』です。リューズパイプとリューズの内側にネジ山を切り、ネジを締め込むことで内部の弾性ゴム（Oリング）を強く圧縮密閉します。",
-          "ダイバーズウォッチなどではリューズ内部とパイプ内部に複数のパッキンを多重配置し、深海の過酷な水圧がかかるほどパッキンが密着する自己密閉構造が採用されています。"
-        ],
-        deepDive: "ねじ込みを忘れたまま水に入ると浸水事故につながるため、現代の高級機ではリューズのねじ込み状態を視覚的に警告するインジケーターを備えたモデルもあります。",
-        readingTime: "3分",
-        sources: [
-          { name: "日本時計協会「腕時計の防水性能表示と取り扱い」", url: "https://www.jcwa.or.jp/knowledge/qa/waterproof.html" }
-        ]
       }
     ];
 
-    /* =========================================================================
-       2. 定着クイズ問題プール
-       ========================================================================= */
-    const QUIZ_QUESTIONS = [
-      {
-        question: "スプリングドライブにおいて、ゼンマイの動力を受けて毎秒8回転で均一に回転する部品は何ですか？",
-        options: ["グライドホイール（ローター）", "アンクル", "ガンギ車", "チラネジ付きテンプ"],
-        answerIndex: 0,
-        explanation: "スプリングドライブでは、トライシンクロレギュレーター内のローター（グライドホイール）が電磁ブレーキの制御を受けながら毎秒8回転で滑らかに回転し、美しいスイープ運針を生み出します。"
-      },
-      {
-        question: "1967年に誕生し、歪みのない平面とシャープな稜線を確立したセイコースタイルの規範モデルは何ですか？",
-        options: ["初代グランドセイコー", "44GS", "クラウン", "セイコーマチック"],
-        answerIndex: 1,
-        explanation: "44GSで確立されたデザイン文法は『セイコースタイル』と呼ばれ、ザラツ研磨による鏡面とシャープなエッジ、光と影の陰影美を現代のGSにも受け継いでいます。"
-      },
-      {
-        question: "機械式時計を平置きにした時と縦置きにした時で精度が変わる主な原因は何ですか？",
-        options: ["天真（テンプ軸）がルビー軸受と接触する摩擦抵抗の変化", "気温の上昇によるヒゲゼンマイの熱膨張", "主ゼンマイのトルク抜け", "文字盤の重み"],
-        answerIndex: 0,
-        explanation: "平置き時は天真の先端の一点のみが接触しますが、縦置き時は重力により側面が接触するため摩擦面積が増加し、振り角が変化して進み遅れ（姿勢差）が生じます。"
-      },
-      {
-        question: "グランドセイコー規格（GSS）の検定における姿勢数と日数の組み合わせとして正しいものはどれですか？",
-        options: ["6姿勢・17日間", "5姿勢・15日間", "4姿勢・10日間", "6姿勢・30日間"],
-        answerIndex: 0,
-        explanation: "スイス公認クロノメーター（COSC）が5姿勢・15日間であるのに対し、GSSは腕を下げて歩行する日常姿勢（12時下）を加えた6姿勢・17日間の過酷な検定を実施します。"
-      },
-      {
-        question: "時計の歯車軸受に人工ルビーが使用される最大の理由は何ですか？",
-        options: ["モース硬度9の極めて高い硬度と低い摩擦係数により金属摩耗を防ぐため", "文字盤を美しく装飾するため", "時計の重量バランスを取るため", "磁気を帯びやすくするため"],
-        answerIndex: 0,
-        explanation: "人工ルビー（コランダム）はダイヤモンドに次ぐ硬度を誇り、完璧な鏡面に研磨できるため、高速回転する微小な金属軸の摩耗を最小限に抑えます。"
-      }
-    ];
-
-    /* =========================================================================
-       3. 専属時計師AI 専門知識リザーバー
-       ========================================================================= */
     const WATCHMAKER_KNOWLEDGE_BASE = [
       {
         keywords: ["工房", "信州", "雫石", "役割"],
@@ -1220,29 +613,24 @@
       }
     ];
 
-    /* =========================================================================
-       4. アプリケーション状態管理
-       ========================================================================= */
     const AppState = {
+      allKnowledge: JSON.parse(localStorage.getItem('jikyo_all_knowledge') || 'null') || [...BASELINE_KNOWLEDGE],
+      currentDailyIds: JSON.parse(localStorage.getItem('jikyo_current_daily_ids') || 'null') || ["gs-initial-01", "gen-initial-01", "gen-initial-02"],
+      lastGeneratedDate: localStorage.getItem('jikyo_last_gen_date') || '',
       bookmarks: JSON.parse(localStorage.getItem('jikyo_bookmarks') || '[]'),
       readIds: JSON.parse(localStorage.getItem('jikyo_read_ids') || '[]'),
-      seenGsIds: JSON.parse(localStorage.getItem('jikyo_seen_gs_ids') || '[]'),
-      seenGeneralIds: JSON.parse(localStorage.getItem('jikyo_seen_general_ids') || '[]'),
-      currentDailyIds: JSON.parse(localStorage.getItem('jikyo_current_daily_ids') || '[]'),
       deliveryTime: localStorage.getItem('jikyo_delivery_time') || '08:00',
       activeTab: 'daily',
       currentDetailItem: null,
-      quizAnswers: {},
-      dailySelectionOffset: parseInt(localStorage.getItem('jikyo_selection_offset') || '0', 10)
+      quizAnswers: {}
     };
 
     function saveState() {
+      localStorage.setItem('jikyo_all_knowledge', JSON.stringify(AppState.allKnowledge));
+      localStorage.setItem('jikyo_current_daily_ids', JSON.stringify(AppState.currentDailyIds));
+      localStorage.setItem('jikyo_last_gen_date', AppState.lastGeneratedDate);
       localStorage.setItem('jikyo_bookmarks', JSON.stringify(AppState.bookmarks));
       localStorage.setItem('jikyo_read_ids', JSON.stringify(AppState.readIds));
-      localStorage.setItem('jikyo_seen_gs_ids', JSON.stringify(AppState.seenGsIds));
-      localStorage.setItem('jikyo_seen_general_ids', JSON.stringify(AppState.seenGeneralIds));
-      localStorage.setItem('jikyo_current_daily_ids', JSON.stringify(AppState.currentDailyIds));
-      localStorage.setItem('jikyo_selection_offset', AppState.dailySelectionOffset.toString());
       localStorage.setItem('jikyo_delivery_time', AppState.deliveryTime);
     }
 
@@ -1254,86 +642,137 @@
       setTimeout(() => { toast.style.opacity = '0'; }, 2200);
     }
 
-    // Mulberry32 乱数生成器
-    function mulberry32(a) {
-      return function() {
-        var t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-      }
-    }
+    async function generateNewDailyThree(isManual = false) {
+      const btn = document.getElementById("generateNewTopicsBtn");
+      const btnText = document.getElementById("generateBtnText");
+      const btnIcon = document.getElementById("generateBtnIcon");
+      const loader = document.getElementById("aiGeneratingIndicator");
+      const cardsBox = document.getElementById("dailyCardsContainer");
 
-    function getDateSeed(offset = 0) {
-      const now = new Date();
-      return (now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate() + offset);
-    }
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = "AI執筆中...";
+      if (btnIcon) btnIcon.classList.add("animate-spin");
+      if (loader) loader.classList.remove("hidden");
+      if (cardsBox) cardsBox.classList.add("opacity-40");
 
-    /* =========================================================================
-       5. 未読優先・厳格ハイブリッド選別（GS 2選 ＋ 一般 1選）
-       ========================================================================= */
-    function pickNewDailyItems() {
-      const gsItems = KNOWLEDGE_DATABASE.filter(item => item.type === 'gs');
-      const genItems = KNOWLEDGE_DATABASE.filter(item => item.type === 'general');
+      const existingTitles = AppState.allKnowledge.map(k => k.title).slice(-25).join(", ");
+      
+      const prompt = `あなたは時計工学と高級マニュファクチュール（特にグランドセイコー）の権威ある時計師です。
+日本の読者に向けて、今日の時計知識【3選】を以下の厳格な構成比率で新規執筆してください。
 
-      // 未読のアイテムを抽出
-      let unreadGs = gsItems.filter(item => !AppState.readIds.includes(item.id));
-      let unreadGen = genItems.filter(item => !AppState.readIds.includes(item.id));
+【必須構成比率（合計3件）】
+1件目: グランドセイコー（GS）の独自技術・モデル・工芸・歴史に関するもの (type: "gs")
+2件目: 機械式時計の一般的な時計学・物理・構造・歴史に関するもの (type: "general")
+3件目: 機械式時計の一般的な時計学・物理・構造・歴史に関するもの (type: "general")
 
-      let candidateGs = unreadGs.length >= 2 ? unreadGs : (unreadGs.length > 0 ? unreadGs.concat(gsItems.filter(i => !unreadGs.includes(i))) : gsItems);
-      let candidateGen = unreadGen.length >= 1 ? unreadGen : genItems;
+【避けるべき既存タイトル】: ${existingTitles}
 
-      let availableGs = candidateGs.filter(item => !AppState.seenGsIds.includes(item.id));
-      if (availableGs.length < 2) {
-        AppState.seenGsIds = [];
-        availableGs = candidateGs;
-      }
+各項目について、以下の仕様でJSON配列（要素数3）を出力してください：
+- type: "gs" または "general"
+- category: "mechanism" | "design" | "history" | "general"
+- categoryName: カテゴリ名（例: "GS機構・キャリバー", "機械時計の基礎教養"）
+- title: 魅力的で洗練されたタイトル
+- subtitle: 技術的・本質的なサブタイトル
+- summary: 100文字程度の要約
+- body: 段落ごとに区切られた詳細解説（文字列配列、各段落120〜180文字程度で2〜3段落）
+- deepDive: 深掘り探求ポイント（1〜2文）
+- readingTime: "3分" など
+- sources: 信頼できる公認出典や規格の配列 [{ name: "文献・規格名", url: "https://..." }]`;
 
-      let availableGen = candidateGen.filter(item => !AppState.seenGeneralIds.includes(item.id));
-      if (availableGen.length < 1) {
-        AppState.seenGeneralIds = [];
-        availableGen = candidateGen;
-      }
-
-      const seed = getDateSeed(AppState.dailySelectionOffset);
-      const prng = mulberry32(seed);
-
-      const shuffledGs = [...availableGs].sort(() => prng() - 0.5);
-      const selectedGs = shuffledGs.slice(0, 2);
-
-      const shuffledGen = [...availableGen].sort(() => prng() - 0.5);
-      const selectedGen = shuffledGen.slice(0, 1);
-
-      // 安全策: 候補不足時の自動フォールバック
-      if (selectedGs.length < 2) {
-        const fallbackGs = gsItems.filter(i => !selectedGs.some(s => s.id === i.id));
-        while (selectedGs.length < 2 && fallbackGs.length > 0) {
-          selectedGs.push(fallbackGs.shift());
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                "type": { "type": "STRING", "enum": ["gs", "general"] },
+                "category": { "type": "STRING" },
+                "categoryName": { "type": "STRING" },
+                "title": { "type": "STRING" },
+                "subtitle": { "type": "STRING" },
+                "summary": { "type": "STRING" },
+                "body": { "type": "ARRAY", "items": { "type": "STRING" } },
+                "deepDive": { "type": "STRING" },
+                "readingTime": { "type": "STRING" },
+                "sources": {
+                  "type": "ARRAY",
+                  "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "name": { "type": "STRING" },
+                      "url": { "type": "STRING" }
+                    },
+                    "required": ["name", "url"]
+                  }
+                }
+              },
+              "required": ["type", "category", "categoryName", "title", "subtitle", "summary", "body", "deepDive", "readingTime", "sources"]
+            }
+          }
         }
-      }
-      if (selectedGen.length < 1) {
-        selectedGen.push(genItems[0]);
-      }
+      };
 
-      selectedGs.forEach(item => {
-        if (!AppState.seenGsIds.includes(item.id)) AppState.seenGsIds.push(item.id);
-      });
-      selectedGen.forEach(item => {
-        if (!AppState.seenGeneralIds.includes(item.id)) AppState.seenGeneralIds.push(item.id);
-      });
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-      AppState.currentDailyIds = [selectedGs[0].id, selectedGen[0].id, selectedGs[1].id].filter(Boolean);
-      saveState();
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("API response not ok");
+
+        const result = await response.json();
+        const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!jsonText) throw new Error("Empty AI response");
+
+        const newItems = JSON.parse(jsonText);
+        if (Array.isArray(newItems) && newItems.length >= 3) {
+          const timestamp = Date.now();
+          const preparedItems = newItems.slice(0, 3).map((item, idx) => ({
+            ...item,
+            id: `gen-${timestamp}-${idx}`
+          }));
+
+          // データベースへ追加
+          preparedItems.forEach(item => {
+            AppState.allKnowledge.unshift(item);
+          });
+
+          // 今日の3選を新しい3件に更新
+          AppState.currentDailyIds = preparedItems.map(it => it.id);
+          AppState.lastGeneratedDate = new Date().toDateString();
+          saveState();
+
+          showToast("✨ 新しい3選（GS 1選 ＋ 機械式 2選）を執筆しました");
+        }
+      } catch (err) {
+        console.warn("AI generation failed or offline, fallbacking...", err);
+        if (isManual) {
+          showToast("通信環境を確認してください（ローカル知見を表示します）");
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = "✨ 新しい3選を生成";
+        if (btnIcon) btnIcon.classList.remove("animate-spin");
+        if (loader) loader.classList.add("hidden");
+        if (cardsBox) cardsBox.classList.remove("opacity-40");
+
+        renderDailyView();
+        if (AppState.activeTab === 'archive') renderArchiveView();
+      }
     }
 
-    /* =========================================================================
-       6. 描画ロジック（カード・アーカイブ・クイズ）
-       ========================================================================= */
     function getCategoryBadge(item) {
       if (item.type === 'general') {
         return `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">機械時計の基礎教養</span>`;
       }
-      return `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">${item.categoryName}</span>`;
+      return `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">${item.categoryName || 'グランドセイコー'}</span>`;
     }
 
     function createCardElement(item, index) {
@@ -1349,7 +788,7 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-xs font-mono font-bold text-amber-700">#0${index + 1}</span>
             ${getCategoryBadge(item)}
-            <span class="text-[11px] text-slate-500">所要 ${item.readingTime}</span>
+            <span class="text-[11px] text-slate-500">所要 ${item.readingTime || '3分'}</span>
           </div>
 
           <button class="bookmark-btn p-1.5 rounded-lg text-slate-400 hover:text-amber-600 transition cursor-pointer" title="お気に入り">
@@ -1408,20 +847,15 @@
       if (!container) return;
       container.innerHTML = "";
 
-      if (!AppState.currentDailyIds || AppState.currentDailyIds.length < 3) {
-        pickNewDailyItems();
-      }
-
       let items = AppState.currentDailyIds
-        .map(id => KNOWLEDGE_DATABASE.find(item => item.id === id))
+        .map(id => AppState.allKnowledge.find(item => item.id === id))
         .filter(Boolean);
 
-      // 万一ストレージ内のIDとDBに不整合がある場合は自動で再選別して描画
+      // 安全ガード：万一3件に満たない場合はベースラインから補完
       if (items.length < 3) {
-        pickNewDailyItems();
-        items = AppState.currentDailyIds
-          .map(id => KNOWLEDGE_DATABASE.find(item => item.id === id))
-          .filter(Boolean);
+        items = [...BASELINE_KNOWLEDGE];
+        AppState.currentDailyIds = items.map(i => i.id);
+        saveState();
       }
 
       items.forEach((item, idx) => {
@@ -1437,12 +871,10 @@
       if (!container) return;
       container.innerHTML = "";
 
-      let list = [...KNOWLEDGE_DATABASE];
+      let list = [...AppState.allKnowledge];
 
       if (categoryFilter === 'unread') list = list.filter(i => !AppState.readIds.includes(i.id));
-      else if (categoryFilter === 'mechanism') list = list.filter(i => i.category === 'mechanism');
-      else if (categoryFilter === 'design') list = list.filter(i => i.category === 'design');
-      else if (categoryFilter === 'history') list = list.filter(i => i.category === 'history');
+      else if (categoryFilter === 'gs') list = list.filter(i => i.type === 'gs');
       else if (categoryFilter === 'general') list = list.filter(i => i.type === 'general');
       else if (categoryFilter === 'bookmarked') list = list.filter(i => AppState.bookmarks.includes(i.id));
 
@@ -1455,7 +887,8 @@
         );
       }
 
-      document.getElementById("catCountAll").textContent = KNOWLEDGE_DATABASE.length;
+      document.getElementById("catCountAll").textContent = AppState.allKnowledge.length;
+      document.getElementById("catCountUnread").textContent = AppState.allKnowledge.filter(i => !AppState.readIds.includes(i.id)).length;
 
       if (list.length === 0) {
         container.innerHTML = `<div class="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200">該当する項目が見つかりませんでした</div>`;
@@ -1466,6 +899,27 @@
         container.appendChild(createCardElement(item, idx));
       });
     }
+
+    const QUIZ_QUESTIONS = [
+      {
+        question: "スプリングドライブにおいて、ゼンマイの動力を受けて毎秒8回転で均一に回転する部品は何ですか？",
+        options: ["グライドホイール（ローター）", "アンクル", "ガンギ車", "チラネジ付きテンプ"],
+        answerIndex: 0,
+        explanation: "スプリングドライブでは、トライシンクロレギュレーター内のローター（グライドホイール）が電磁ブレーキの制御を受けながら毎秒8回転で滑らかに回転し、美しいスイープ運針を生み出します。"
+      },
+      {
+        question: "機械式時計を平置きにした時と縦置きにした時で精度が変わる主な原因は何ですか？",
+        options: ["天真（テンプ軸）がルビー軸受と接触する摩擦抵抗の変化", "気温の上昇によるヒゲゼンマイの熱膨張", "主ゼンマイのトルク抜け", "文字盤の重み"],
+        answerIndex: 0,
+        explanation: "平置き時は天真の先端の一点のみが接触しますが、縦置き時は重力により側面が接触するため摩擦面積が増加し、振り角が変化して進み遅れ（姿勢差）が生じます。"
+      },
+      {
+        question: "時計の歯車軸受に人工ルビーが使用される最大の理由は何ですか？",
+        options: ["モース硬度9の極めて高い硬度と低い摩擦係数により金属摩耗を防ぐため", "文字盤を美しく装飾するため", "時計の重量バランスを取るため", "磁気を帯びやすくするため"],
+        answerIndex: 0,
+        explanation: "人工ルビー（コランダム）はダイヤモンドに次ぐ硬度を誇り、完璧な鏡面に研磨できるため、高速回転する微小な金属軸の摩耗を最小限に抑えます。"
+      }
+    ];
 
     function renderQuizView() {
       const container = document.getElementById("quizCardsContainer");
@@ -1528,9 +982,6 @@
       document.getElementById("quizScoreBadge").textContent = `解答中: ${totalAnswered}/${QUIZ_QUESTIONS.length}`;
     }
 
-    /* =========================================================================
-       7. モーダル操作・自動既読・双方向切り替え・AI単語解説
-       ========================================================================= */
     function openDetailModal(item) {
       AppState.currentDetailItem = item;
 
@@ -1543,25 +994,26 @@
         if (AppState.activeTab === 'archive') renderArchiveView();
       }
 
-      document.getElementById("modalCategoryBadge").textContent = item.categoryName;
+      document.getElementById("modalCategoryBadge").textContent = item.categoryName || (item.type === 'general' ? '機械時計の基礎教養' : 'グランドセイコー');
       document.getElementById("modalTitle").textContent = item.title;
       document.getElementById("modalSubtitle").textContent = item.subtitle;
 
       // 段落の描画（適切な行間 leading-[1.7]）
       const bodyBox = document.getElementById("modalBody");
-      bodyBox.innerHTML = item.body.map(p => `<p>${p}</p>`).join('');
+      const paragraphs = Array.isArray(item.body) ? item.body : [item.body];
+      bodyBox.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
 
-      document.getElementById("modalDeepDive").textContent = item.deepDive;
+      document.getElementById("modalDeepDive").textContent = item.deepDive || '';
 
       // 出典
       const srcBox = document.getElementById("modalSources");
-      srcBox.innerHTML = item.sources.map(s => `
-        <div><a href="${s.url}" target="_blank" rel="noopener noreferrer" class="hover:underline text-amber-800 font-semibold">・${s.name} ↗</a></div>
+      const sources = Array.isArray(item.sources) ? item.sources : [];
+      srcBox.innerHTML = sources.map(s => `
+        <div><a href="${s.url || '#'}" target="_blank" rel="noopener noreferrer" class="hover:underline text-amber-800 font-semibold">・${s.name} ↗</a></div>
       `).join('');
 
       updateModalButtonStates(item.id);
 
-      // 単語検索リセット
       document.getElementById("inlineWordInput").value = "";
       document.getElementById("inlineWordResult").classList.add("hidden");
       document.getElementById("textSelectionPopup").classList.add("hidden");
@@ -1627,42 +1079,55 @@
       document.getElementById("headerTimeDisplay").textContent = AppState.deliveryTime;
     }
 
-    // 単語解説ロジック
-    function explainWord(word) {
+    async function explainWord(word) {
       if (!word) return;
       const resBox = document.getElementById("inlineWordResult");
       resBox.classList.remove("hidden");
       resBox.innerHTML = `<span class="text-slate-500 animate-pulse">時計師AIが「${word}」を照会中...</span>`;
 
+      // ローカル辞書を先頭チェック
       const matched = WATCHMAKER_KNOWLEDGE_BASE.find(k => k.keywords.some(kw => word.includes(kw)));
       if (matched) {
         setTimeout(() => {
           resBox.innerHTML = `<strong>【${word}】</strong><br>${matched.answer.replace(/\n/g, '<br>')}`;
-        }, 200);
+        }, 150);
         return;
       }
 
-      setTimeout(() => {
-        let text = "機械式時計・高級時計の調速・脱進、または意匠仕上げに関連する専門要素です。精度安定性や審美性を極限まで高めるために設計されています。";
-        if (word.includes("てんぷ") || word.includes("テンプ")) {
-          text = "テンプとは、ヒゲゼンマイの弾性を利用して左右に規則正しく往復振動する「機械式時計の心臓部（調速機）」です。振り子の役割を果たし、時計の精度（進み・遅れ）を決定づけます。";
-        } else if (word.includes("アンクル") || word.includes("爪")) {
-          text = "アンクルとは、テンプの振動に合わせて左右に首を振り、ガンギ車の回転を1歯ずつ逃がす船の錨（いかり）のような形をした脱進機部品です。先端のルビー爪がチクタク音を奏でます。";
-        } else if (word.includes("トライシンクロ") || word.includes("レギュレーター")) {
-          text = "トライシンクロレギュレーターとは、スプリングドライブの中核部品です。主ゼンマイの機械的力で微小発電を行い、水晶振動子とICを動かして電磁ブレーキをかけることで、日差±1秒の正確な運針を実現します。";
-        } else if (word.includes("ザラツ")) {
-          text = "ザラツ研磨とは、回転するスズ円盤に職人が指先の感触だけでケースを当てて磨く超絶技巧です。一切の歪みのない鏡面（ブラックポリッシュ）を作り出し、シャープな稜線を際立たせます。";
-        } else if (word.includes("石数") || word.includes("ルビー")) {
-          text = "人工ルビー軸受とは、歯車の細い回転軸を支えるモース硬度9の宝石パーツです。金属同士の焼き付きや摩擦摩耗を防止し、数十年単位の安定した精度寿命を支えます。";
+      // Gemini 3 Flash でのクイック解説
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: `時計工学の専門家として、用語「${word}」の意味・構造上の役割を2〜3文で簡潔にわかりやすく解説してください。` }] }]
+      };
+
+      try {
+        const resp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        const ans = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (ans) {
+          resBox.innerHTML = `<strong>【${word}】</strong><br>${ans.replace(/\n/g, '<br>')}`;
+          return;
         }
-        resBox.innerHTML = `<strong>【${word}】</strong><br>${text}`;
-      }, 300);
+      } catch (e) {
+        console.warn("AI explain failed, fallbacking...");
+      }
+
+      // フォールバック
+      let text = "機械式時計・高級時計の調速・脱進、または意匠仕上げに関連する専門要素です。精度安定性や審美性を極限まで高めるために設計されています。";
+      if (word.includes("てんぷ") || word.includes("テンプ")) {
+        text = "テンプとは、ヒゲゼンマイの弾性を利用して左右に規則正しく往復振動する「機械式時計の心臓部（調速機）」です。振り子の役割を果たし、時計の精度を決定づけます。";
+      } else if (word.includes("アンクル") || word.includes("爪")) {
+        text = "アンクルとは、テンプの振動に合わせて左右に首を振り、ガンギ車の回転を1歯ずつ逃がす脱進機部品です。先端のルビー爪がチクタク音を奏でます。";
+      }
+      resBox.innerHTML = `<strong>【${word}】</strong><br>${text}`;
     }
 
-    /* =========================================================================
-       8. 専属時計師AIタブ ロジック
-       ========================================================================= */
-    function askWatchmakerAI(questionText) {
+    async function askWatchmakerAI(questionText) {
       const q = questionText || document.getElementById("aiPromptInput")?.value?.trim();
       if (!q) return;
 
@@ -1674,57 +1139,67 @@
       loading.classList.remove("hidden");
       respBox.classList.add("hidden");
 
-      setTimeout(() => {
-        const matched = WATCHMAKER_KNOWLEDGE_BASE.find(k => k.keywords.some(kw => q.includes(kw)));
-        let responseText = "";
-        let sources = [];
+      // 事前辞書の一致確認
+      const matched = WATCHMAKER_KNOWLEDGE_BASE.find(k => k.keywords.some(kw => q.includes(kw)));
 
-        if (matched) {
-          responseText = matched.answer;
-          sources = matched.sources;
-        } else {
-          responseText = `【時計師AIによる解説】\n\nご質問の「${q}」について：\n時計工学およびグランドセイコーの設計思想において、精度・耐久性・視認性・審美性は「セイコースタイル」と呼ばれる厳格な文法に基づいて追求されています。\n\n詳細な機構（スプリングドライブ、9Sメカニカル、9Fクオーツ、脱進機の構造など）について気になる点がございましたら、上のプリセット質問もお試しください。`;
-          sources = [{ title: "グランドセイコー公式技術アーカイブ", uri: "https://www.grand-seiko.com/jp-ja" }];
-        }
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: `あなたは世界最高峰のマニュファクチュール・グランドセイコー公認の時計師です。以下の質問に対し、時計工学的・歴史的視点を交えて格調高く丁寧に回答してください。\n\n質問: ${q}` }] }]
+      };
 
-        respContent.textContent = responseText;
-        if (sources.length > 0) {
-          sourcesBox.innerHTML = '<span class="font-bold text-slate-700">参照資料:</span>' + sources.map(s => `<div><a href="${s.uri}" target="_blank" class="text-amber-800 hover:underline">・${s.title} ↗</a></div>`).join('');
-        } else {
+      try {
+        const resp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        const ans = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (ans) {
+          respContent.textContent = ans;
           sourcesBox.innerHTML = '<span class="text-slate-500">セイコーウオッチ技術資料・時計工学基準に基づき回答</span>';
+          loading.classList.add("hidden");
+          respBox.classList.remove("hidden");
+          return;
         }
+      } catch (err) {
+        console.warn("AI response error, using expert base...");
+      }
 
-        loading.classList.add("hidden");
-        respBox.classList.remove("hidden");
-      }, 350);
+      if (matched) {
+        respContent.textContent = matched.answer;
+        sourcesBox.innerHTML = '<span class="font-bold text-slate-700">参照資料:</span>' + matched.sources.map(s => `<div><a href="${s.uri}" target="_blank" class="text-amber-800 hover:underline">・${s.title} ↗</a></div>`).join('');
+      } else {
+        respContent.textContent = `【時計師AIによる解説】\n\nご質問の「${q}」について：\n時計工学およびグランドセイコーの設計思想において、精度・耐久性・視認性・審美性は「セイコースタイル」と呼ばれる厳格な文法に基づいて追求されています。`;
+        sourcesBox.innerHTML = '<span class="text-slate-500">公認技術仕様書・時計工学アーカイブ照会済</span>';
+      }
+
+      loading.classList.add("hidden");
+      respBox.classList.remove("hidden");
     }
 
-    /* =========================================================================
-       9. イベントリスナーと初期化
-       ========================================================================= */
     document.addEventListener("DOMContentLoaded", () => {
       const now = new Date();
       const days = ["日", "月", "火", "水", "木", "金", "土"];
       document.getElementById("currentDateStr").textContent = 
         `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日(${days[now.getDay()]})`;
 
-      const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-      const savedDateKey = localStorage.getItem('jikyo_last_date_key');
-
-      // ユーザーの現在画面で読了済みが混ざっている状態を未読3選に即座に修復・更新
-      const currentReadCount = (AppState.currentDailyIds || []).filter(id => AppState.readIds.includes(id)).length;
-      const unreadGsCount = KNOWLEDGE_DATABASE.filter(i => i.type === 'gs' && !AppState.readIds.includes(i.id)).length;
-      const unreadGenCount = KNOWLEDGE_DATABASE.filter(i => i.type === 'general' && !AppState.readIds.includes(i.id)).length;
-
-      if (savedDateKey !== todayKey || !AppState.currentDailyIds || AppState.currentDailyIds.length < 3 || (currentReadCount >= 2 && unreadGsCount >= 2 && unreadGenCount >= 1)) {
-        localStorage.setItem('jikyo_last_date_key', todayKey);
-        pickNewDailyItems();
-      }
-
       updateHeaderAndCounts();
       renderDailyView();
       renderArchiveView();
       renderQuizView();
+
+      // 日付が変わっている場合は自動で新しい3選を生成
+      const todayStr = now.toDateString();
+      if (AppState.lastGeneratedDate !== todayStr) {
+        generateNewDailyThree(false);
+      }
+
+      // 「新しい3選を生成」ボタン
+      document.getElementById("generateNewTopicsBtn").addEventListener("click", () => {
+        generateNewDailyThree(true);
+      });
 
       // タブ切り替え
       document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -1742,12 +1217,13 @@
         });
       });
 
-      // 再選別ボタン（未読優先で新しい3選を表示）
-      document.getElementById("refreshTodayBtn").addEventListener("click", () => {
-        AppState.dailySelectionOffset += 1;
-        pickNewDailyItems();
+      // 保管録リセット
+      document.getElementById("resetAllReadStatusBtn").addEventListener("click", () => {
+        AppState.readIds = [];
+        saveState();
         renderDailyView();
-        showToast("未読の中から新しい3選を表示しました");
+        renderArchiveView();
+        showToast("すべての項目を未読に戻しました");
       });
 
       // アーカイブ検索・カテゴリ
@@ -1772,7 +1248,7 @@
         showToast("テストをリセットしました");
       });
 
-      // 時計師AIタブの操作
+      // 時計師AIタブ操作
       document.getElementById("aiSubmitBtn").addEventListener("click", () => askWatchmakerAI());
       document.querySelectorAll(".ai-chip").forEach(chip => {
         chip.addEventListener("click", () => {
@@ -1795,7 +1271,7 @@
       document.getElementById("closeDetailModalBtn").addEventListener("click", closeDetailModal);
       document.getElementById("closeDetailModalFooterBtn").addEventListener("click", closeDetailModal);
 
-      // モーダル内既読・ブックマーク操作
+      // モーダル内操作
       document.getElementById("modalToggleReadBtn").addEventListener("click", () => {
         if (AppState.currentDetailItem) toggleRead(AppState.currentDetailItem.id);
       });
